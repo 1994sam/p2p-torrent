@@ -21,6 +21,15 @@ public class Const {
 	public static final String LOG_FILE_EXTENSTION = ".log";
 
 
+	public static final String CHOKE = "CHOKE";
+	public static final String UNCHOKE = "UNCHOKE";
+	public static final String INTERESTED = "INTERESTED";
+	public static final String NOT_INTERESTED = "NOT_INTERESTED";
+	public static final String HAVE = "HAVE";
+	public static final String BITFIELD = "BITFIELD";
+	public static final String REQUEST = "REQUEST";
+	public static final String PIECE = "PIECE";
+
 	public enum MsgType {
 		CHOKE,
 		UNCHOKE,

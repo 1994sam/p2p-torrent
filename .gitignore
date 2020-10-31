@@ -5,6 +5,7 @@ out/
 # Don't track content of these files
 *.iml
 *.log
+*.log.lck
 
 # Compiled source
 *.class

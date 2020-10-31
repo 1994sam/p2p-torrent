@@ -1,13 +1,12 @@
 package org.networks.java.service;
 
+import org.networks.java.helper.CommonConfig;
 import org.networks.java.helper.MessageStream;
 import org.networks.java.helper.Const;
-import org.networks.java.helper.MessageUtil;
 import org.networks.java.model.PeerInfo;
 
 import java.net.Socket;
 import java.util.logging.Level;
-import java.util.logging.Logger;
 
 public class Server implements Runnable {
 
@@ -15,19 +14,22 @@ public class Server implements Runnable {
 	private String neighborPeerId;
 	private String msg;
 	private String logMsg;
+	final private CommonConfig commonConfig;
 	private MessageStream msgStream;
+	final private PeerInfo peerInfo;
 	private Socket socketCon;
-	private PeerInfo peerInfo;
+
 
 	public Server() {
-		this(null, null);
+		this(null, null, null);
 	}
 
-	public Server(PeerInfo peerInfo, Socket socketCon) {
+	public Server(final CommonConfig commonConfig,final PeerInfo peerInfo, Socket socketCon) {
 		connected = false;
 		neighborPeerId = "";
 		msg = "";
 		logMsg = "";
+		this.commonConfig = commonConfig;
 		this.peerInfo = peerInfo;
 		this.socketCon = socketCon;
 	}
@@ -47,16 +49,21 @@ public class Server implements Runnable {
 	}
 
 	private void processHandshake() {
-		msg = msgStream.readMsg(Const.HANDSHAKE_MSG_LEN);
-		neighborPeerId = MessageUtil.readHandshakeMsg(msg);
+		neighborPeerId = msgStream.readHandshakeMsg(Const.HANDSHAKE_MSG_LEN);
 		logMsg = "Peer " + peerInfo.getPeerId() + " is connected from " + neighborPeerId + ".";
 		P2PLogger.getLogger().log(Level.INFO, logMsg);
-		msg = MessageUtil.createHandshakeMsg(peerInfo.getPeerId());
-		msgStream.sendMsg(msg);
+		msgStream.sendHandshakeMsg(peerInfo.getPeerId());
 		connected = true;
+		processBitField();
+	}
+
+	private void processBitField() {
+		if(peerInfo.isFilePresent()) {
+			msgStream.sendBitFieldMsg(306);
+		}
 	}
 
 	private void processMessage() {
-
+		msgStream.readMsg();
 	}
 }

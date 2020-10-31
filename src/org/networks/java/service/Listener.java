@@ -1,5 +1,6 @@
 package org.networks.java.service;
 
+import org.networks.java.helper.CommonConfig;
 import org.networks.java.helper.Const;
 import org.networks.java.model.PeerInfo;
 
@@ -10,14 +11,16 @@ import java.util.logging.Level;
 public class Listener implements Runnable {
 
 	private String logMsg;
-	private PeerInfo peerInfo;
+	private final CommonConfig commonConfig;
+	private final PeerInfo peerInfo;
 
 	public Listener() {
-		this(null);
+		this(null, null);
 	}
 
-	public Listener(PeerInfo peerInfo) {
+	public Listener(final CommonConfig commonConfig, final PeerInfo peerInfo) {
 		logMsg = "";
+		this.commonConfig = commonConfig;
 		this.peerInfo = peerInfo;
 	}
 
@@ -32,7 +35,7 @@ public class Listener implements Runnable {
 			int clientNum = 1;
 			while(true) {
 
-				Server server = new Server(peerInfo, listener.accept());
+				Server server = new Server(commonConfig, peerInfo, listener.accept());
 				new Thread(server).start();
 				logMsg = "Peer " + peerInfo.getPeerId() + " connecting to client " + clientNum + ".";
 				P2PLogger.getLogger().log(Level.INFO, logMsg);

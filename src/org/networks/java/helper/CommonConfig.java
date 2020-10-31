@@ -38,15 +38,18 @@ public class CommonConfig {
 		return Integer.parseInt(properties.getProperty(PIECE_SIZE));
 	}
 
-	public CommonConfig() throws IOException {
+	public CommonConfig() {
 		this(Const.COMMON_CFG_FILE_NAME);
 	}
 
-	public CommonConfig(String fileName) throws IOException {
+	public CommonConfig(String fileName) {
 		String filePath = System.getProperty(Const.USER_DIR_PATH) + File.separator + fileName;
 		final File cfgFile = new File(filePath);
-		final InputStream inStream = new DataInputStream(new FileInputStream(cfgFile));
 		properties = new Properties();
-		properties.load(inStream);
+		try (final InputStream inStream = new DataInputStream(new FileInputStream(cfgFile))){
+			properties.load(inStream);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 }
