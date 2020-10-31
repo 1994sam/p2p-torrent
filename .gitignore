@@ -1,0 +1,9 @@
+# Don't track content of these folders
+.idea/
+out/
+
+# Don't track content of these files
+*.iml
+
+# Compiled source
+*.class
