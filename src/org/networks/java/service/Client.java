@@ -13,16 +13,24 @@ import java.util.logging.Logger;
 
 public class Client implements Runnable {
 
+	private boolean connected;
 	private String msg;
+	private String logMsg;
 	private MessageStream msgStream;
 	private PeerInfo peerInfo;
 	private PeerInfo neighborPeer;
 	private List<PeerInfo> neighborPeers;
 
-	public Client() {}
+	public Client() {
+		this(null, null);
+	}
 
 	public Client(PeerInfo peerInfo, List<PeerInfo> neighborPeers) {
+		connected = false;
+		msg = "";
+		logMsg = "";
 		this.peerInfo = peerInfo;
+		neighborPeer = null;
 		this.neighborPeers = neighborPeers;
 	}
 
@@ -36,7 +44,10 @@ public class Client implements Runnable {
 
 				P2PLogger.getLogger().log(Level.INFO, "Peer is connected to " + neighborPeer.getHostName() + ":" + neighborPeer.getPortNum());
 				msgStream = new MessageStream(socketCon);
-				processHandshake();
+				if(!connected)
+					processHandshake();
+				else
+					processMessage();
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -45,15 +56,23 @@ public class Client implements Runnable {
 	}
 
 	private void processHandshake() {
-		P2PLogger.getLogger().log(Level.INFO, "Sending connection request");
+		logMsg = "Peer " + peerInfo.getPeerId() + " sending connection request to " + neighborPeer.getPeerId() + ".";
+		P2PLogger.getLogger().log(Level.INFO, logMsg);
 		msg = MessageUtil.createHandshakeMsg(peerInfo.getPeerId());
 		msgStream.sendMsg(msg);
 
 		msg = msgStream.readMsg(Const.HANDSHAKE_MSG_LEN);
 		String neighborPeerId = MessageUtil.readHandshakeMsg(msg);
 		if(!neighborPeerId.isEmpty() && neighborPeer.getPeerId().equals(neighborPeerId) ) {
-			P2PLogger.getLogger().log(Level.INFO, "Received acknowledgment and sending confirmation");
-			msgStream.sendMsg("Connection Established");
+			logMsg = "Peer " + peerInfo.getPeerId() + " makes a connection to " + neighborPeer.getPeerId() + ".";
+			P2PLogger.getLogger().log(Level.INFO, logMsg);
+			connected = true;
 		}
+	}
+
+	private void processMessage() {
+		logMsg = "Peer " + peerInfo.getPeerId() + " sending connection confirmation to " + neighborPeer.getPeerId() + ".";
+		P2PLogger.getLogger().log(Level.INFO, logMsg);
+		msgStream.sendMsg("Connection Established");
 	}
 }

@@ -3,7 +3,6 @@ package org.networks.java.helper;
 import org.networks.java.service.P2PLogger;
 
 import java.util.logging.Level;
-import java.util.logging.Logger;
 
 public class MessageUtil {
 
@@ -13,7 +12,8 @@ public class MessageUtil {
 		for(int i = 0; i < Const.HANDSHAKE_ZERO_BITS_LEN; i++)
 			sb.append("0");
 		sb.append(peerId);
-		P2PLogger.getLogger().log(Level.INFO, "Sending handshake Msg: " + sb.toString());
+		String logMsg = "Peer " + peerId + " sending handshake message: " + sb.toString() + ".";
+		P2PLogger.getLogger().log(Level.INFO, logMsg);
 		return new String(sb);
 	}
 
@@ -26,7 +26,8 @@ public class MessageUtil {
 			return "";
 
 		String neighborPeerId =  msg.substring(headerLen + Const.HANDSHAKE_ZERO_BITS_LEN);
-		P2PLogger.getLogger().log(Level.INFO, "Receiving handshake Msg: " + msg + " from neighbor: ", neighborPeerId);
+		String logMsg = "Peer " + neighborPeerId + " sent handshake message: " + msg + ".";
+		P2PLogger.getLogger().log(Level.INFO, logMsg);
 		return neighborPeerId;
 	}
 

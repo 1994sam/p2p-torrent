@@ -42,7 +42,7 @@ public class MessageStream {
 		try {
 			outStream.write(msg.getBytes(StandardCharsets.UTF_8));
 			outStream.flush();
-			P2PLogger.getLogger().log(Level.INFO, "Msg sent: " + msg);
+//			P2PLogger.getLogger().log(Level.INFO, "Msg sent: " + msg);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -54,7 +54,7 @@ public class MessageStream {
 			byte[] msgBytes = new byte[msgLen];
 			int len = inStream.read(msgBytes);
 			msg = new String(msgBytes, StandardCharsets.UTF_8);
-			P2PLogger.getLogger().log(Level.INFO, "Msg received: " + msg);
+//			P2PLogger.getLogger().log(Level.INFO, "Msg received: " + msg);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}

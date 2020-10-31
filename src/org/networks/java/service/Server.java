@@ -11,34 +11,52 @@ import java.util.logging.Logger;
 
 public class Server implements Runnable {
 
+	private boolean connected;
+	private String neighborPeerId;
 	private String msg;
+	private String logMsg;
 	private MessageStream msgStream;
 	private Socket socketCon;
 	private PeerInfo peerInfo;
 
-	public Server() {}
+	public Server() {
+		this(null, null);
+	}
 
 	public Server(PeerInfo peerInfo, Socket socketCon) {
+		connected = false;
+		neighborPeerId = "";
+		msg = "";
+		logMsg = "";
 		this.peerInfo = peerInfo;
 		this.socketCon = socketCon;
 	}
 
 	@Override
 	public void run() {
-		P2PLogger.getLogger().log(Level.INFO, "Peer is receiving messages on " + peerInfo.getPortNum());
-
+		logMsg = "Peer " + peerInfo.getPeerId() + " receiving messages on " + peerInfo.getPortNum() + ".";
+		P2PLogger.getLogger().log(Level.INFO, logMsg);
 		msgStream = new MessageStream(socketCon);
 
 		while(true) {
-			processHandshake();
+			if(!connected)
+				processHandshake();
+			else
+				processMessage();
 		}
 	}
 
 	private void processHandshake() {
 		msg = msgStream.readMsg(Const.HANDSHAKE_MSG_LEN);
-		String neighborPeerId = MessageUtil.readHandshakeMsg(msg);
-		P2PLogger.getLogger().log(Level.INFO, "Received connection request and sending acknowledgment");
+		neighborPeerId = MessageUtil.readHandshakeMsg(msg);
+		logMsg = "Peer " + peerInfo.getPeerId() + " is connected from " + neighborPeerId + ".";
+		P2PLogger.getLogger().log(Level.INFO, logMsg);
 		msg = MessageUtil.createHandshakeMsg(peerInfo.getPeerId());
 		msgStream.sendMsg(msg);
+		connected = true;
+	}
+
+	private void processMessage() {
+
 	}
 }

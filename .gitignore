@@ -4,6 +4,7 @@ out/
 
 # Don't track content of these files
 *.iml
+*.log
 
 # Compiled source
 *.class
