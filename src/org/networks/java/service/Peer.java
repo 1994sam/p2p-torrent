@@ -27,6 +27,6 @@ public class Peer {
 	public void run() {
 		P2PLogger.getLogger().log(Level.INFO, "Starting peer process");
 		new Thread(new Client(commonConfig, peerInfo, neighborPeers)).start();
-//		new Thread(new Listener(commonConfig, peerInfo)).start();
+		new Thread(new Listener(commonConfig, peerInfo)).start();
 	}
 }
