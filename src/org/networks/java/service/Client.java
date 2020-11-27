@@ -67,7 +67,9 @@ public class Client implements Runnable {
 				logMsg = "Peer " + peerInfo.getPeerId() + " makes a connection to " + neighborPeer.getPeerId() + ".";
 				P2PLogger.getLogger().log(Level.INFO, logMsg);
 				connected = true;
-				processBitField();
+//				processBitField();
+//				msgStream.sendInterestedMsg(0);
+//				msgStream.sendRequestMsg(15);
 			}
 		}
 	}

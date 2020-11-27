@@ -54,7 +54,7 @@ public class Server implements Runnable {
 		P2PLogger.getLogger().log(Level.INFO, logMsg);
 		msgStream.sendHandshakeMsg(peerInfo.getPeerId());
 		connected = true;
-		processBitField();
+//		processBitField();
 	}
 
 	private void processBitField() {

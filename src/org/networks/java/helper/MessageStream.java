@@ -176,6 +176,7 @@ public class MessageStream {
 		}
 
 		String logMsg = "Peer" + " received Choke message" + ".";
+		System.out.println(logMsg);
 		P2PLogger.getLogger().log(Level.INFO, logMsg);
 	}
 
@@ -192,16 +193,6 @@ public class MessageStream {
 		byteBuffer = ByteBuffer.allocate(Const.MSG_TYPE_LEN);
 		byteBuffer.put((byte)msgType);
 		for(byte val: byteBuffer.array())
-			msgBytes[index++] = val;
-
-		BitSet temp = new BitSet(msgPayLoadLen);
-		for(int i = 0; i < 306 ; i++){
-			temp.set(i, true);
-		}
-
-		byte[] t = temp.toByteArray();
-
-		for(byte val: t)
 			msgBytes[index++] = val;
 
 		try {
@@ -225,7 +216,7 @@ public class MessageStream {
 			e.printStackTrace();
 		}
 
-		String logMsg = "Peer" + " received UnChoke message" + ".";
+		String logMsg = "Peer" + " received UnChoke message.";
 		P2PLogger.getLogger().log(Level.INFO, logMsg);
 	}
 
@@ -242,16 +233,6 @@ public class MessageStream {
 		byteBuffer = ByteBuffer.allocate(Const.MSG_TYPE_LEN);
 		byteBuffer.put((byte)msgType);
 		for(byte val: byteBuffer.array())
-			msgBytes[index++] = val;
-
-		BitSet temp = new BitSet(msgPayLoadLen);
-		for(int i = 0; i < 306 ; i++){
-			temp.set(i, true);
-		}
-
-		byte[] t = temp.toByteArray();
-
-		for(byte val: t)
 			msgBytes[index++] = val;
 
 		try {
@@ -294,16 +275,6 @@ public class MessageStream {
 		for(byte val: byteBuffer.array())
 			msgBytes[index++] = val;
 
-		BitSet temp = new BitSet(msgPayLoadLen);
-		for(int i = 0; i < 306 ; i++){
-			temp.set(i, true);
-		}
-
-		byte[] t = temp.toByteArray();
-
-		for(byte val: t)
-			msgBytes[index++] = val;
-
 		try {
 			outStream.write(msgBytes);
 			outStream.flush();
@@ -344,16 +315,6 @@ public class MessageStream {
 		for(byte val: byteBuffer.array())
 			msgBytes[index++] = val;
 
-		BitSet temp = new BitSet(msgPayLoadLen);
-		for(int i = 0; i < 306 ; i++){
-			temp.set(i, true);
-		}
-
-		byte[] t = temp.toByteArray();
-
-		for(byte val: t)
-			msgBytes[index++] = val;
-
 		try {
 			outStream.write(msgBytes);
 			outStream.flush();
@@ -377,7 +338,7 @@ public class MessageStream {
 			e.printStackTrace();
 		}
 
-		String logMsg = "Peer" + " received Have message" + ".";
+		String logMsg = "Peer" + " received Have message" + "." + Arrays.toString(msgPayLoadBytes);
 		P2PLogger.getLogger().log(Level.INFO, logMsg);
 	}
 
@@ -397,22 +358,19 @@ public class MessageStream {
 			msgBytes[index++] = val;
 
 		BitSet temp = new BitSet(msgPayLoadLen);
-		for(int i = 0; i < 306 ; i++){
+		for(int i = 0; i < msgPayLoadLen ; i++){
 			temp.set(i, true);
 		}
-
 		byte[] t = temp.toByteArray();
-
-		for(byte val: t)
+		for(byte val: t) {
 			msgBytes[index++] = val;
-
+		}
 		try {
 			outStream.write(msgBytes);
 			outStream.flush();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-
 		printByteArr(msgBytes);
 		String logMsg = "Peer" + " sending Have message: " + Arrays.toString(msgBytes) + ".";
 		P2PLogger.getLogger().log(Level.INFO, logMsg);
@@ -447,7 +405,7 @@ public class MessageStream {
 			msgBytes[index++] = val;
 
 		BitSet temp = new BitSet(msgPayLoadLen);
-		for(int i = 0; i < 306 ; i++){
+		for(int i = 0; i < msgPayLoadLen ; i++){
 			temp.set(i, true);
 		}
 
@@ -497,7 +455,7 @@ public class MessageStream {
 			msgBytes[index++] = val;
 
 		BitSet temp = new BitSet(msgPayLoadLen);
-		for(int i = 0; i < 306 ; i++){
+		for(int i = 0; i < msgPayLoadLen ; i++){
 			temp.set(i, true);
 		}
 
