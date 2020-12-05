@@ -19,8 +19,9 @@ public class FileHandler {
 	private final Map<Integer, String> tempFileNames;
 
 	private final CommonConfig commonConfig;
+	private final String peerID;
 
-	public FileHandler(String filePath, boolean readOnly, CommonConfig commonConfig) throws IOException {
+	public FileHandler(String filePath, boolean readOnly, CommonConfig commonConfig, final String peerID) throws IOException {
 		this.filePath = filePath;
 		this.readOnly = readOnly;
 		this.commonConfig = commonConfig;
@@ -30,12 +31,13 @@ public class FileHandler {
 		tempFileNames = new HashMap<>();
 
 		if (readOnly) {
-			randomAccessFile = null;
-//            randomAccessFile = readFile();
+            randomAccessFile = readFile();
 		} else {
 			randomAccessFile = new RandomAccessFile(filePath, "rw");
 			randomAccessFile.setLength(commonConfig.getFileSize());
 		}
+
+		this.peerID = peerID;
 	}
 
 	private RandomAccessFile readFile() throws IOException {
@@ -53,10 +55,6 @@ public class FileHandler {
 		return file;
 	}
 
-//	public void addFilePiece(byte[] piece, int pieceIndex) {
-//		pieces.put(pieceIndex, piece);
-//	}
-
 	public void addFilePiece(byte[] piece, int pieceIndex, String peerID) throws IOException {
 		String executionPath = System.getProperty("user.dir");
 		String folderPath = executionPath + File.separator + "peer" + peerID + File.separator;
@@ -71,7 +69,6 @@ public class FileHandler {
 	public byte[] getFilePiece(int pieceIndex) throws IOException {
 		Path path = Paths.get(tempFileNames.get(pieceIndex));
 		return Files.readAllBytes(path);
-//		return pieces.get(pieceIndex);
 	}
 
 	public void closeFile() throws IOException {
@@ -83,15 +80,6 @@ public class FileHandler {
 	}
 
 	public void writeFileToDisk() throws IOException {
-//        int fileSize = commonConfig.getFileSize();
-//        int pieceSize = commonConfig.getPieceSize();
-//        int numberOfPieces = (int) Math.ceil(fileSize / (float) pieceSize);
-//        for (int i = 0; i < numberOfPieces; i++) {
-//            randomAccessFile.seek(i * pieceSize);
-//            randomAccessFile.write(pieces.get(i));
-//        }
-
-		String peerID = "1002";
 		String executionPath = System.getProperty("user.dir");
 		String folderPath = executionPath + File.separator + "peer" + peerID + File.separator;
 

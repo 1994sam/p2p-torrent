@@ -13,7 +13,7 @@ class FileHandlerTest {
         Random rd = new Random();
         byte[] arr = new byte[100];
         rd.nextBytes(arr);
-        FileHandler handler = new FileHandler("E:\\Courses\\Semester 3\\CN\\Project\\p2p-torrent\\peer1002", true, new CommonConfig());
+        FileHandler handler = new FileHandler("E:\\Courses\\Semester 3\\CN\\Project\\p2p-torrent\\peer1002", true, new CommonConfig(), "1002");
         handler.addFilePiece(arr, 0, "1002");
     }
 
@@ -29,7 +29,7 @@ class FileHandlerTest {
 
         CommonConfig commonConfig = new CommonConfig("E:\\Courses\\Semester 3\\CN\\Project\\p2p-torrent\\Common.cfg");
 
-        FileHandler handler = new FileHandler("E:\\Courses\\Semester 3\\CN\\Project\\p2p-torrent\\peer1002", true, commonConfig);
+        FileHandler handler = new FileHandler("E:\\Courses\\Semester 3\\CN\\Project\\p2p-torrent\\peer1002", true, commonConfig, "1002");
         for (int i = 0; i < 5; i++) {
             arr = new byte[100];
             rd.nextBytes(arr);
