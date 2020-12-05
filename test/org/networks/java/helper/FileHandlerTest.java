@@ -1,0 +1,42 @@
+package org.networks.java.helper;
+
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+
+import java.io.IOException;
+import java.util.Random;
+
+class FileHandlerTest {
+
+    @Test
+    void addFilePiece() throws IOException {
+        Random rd = new Random();
+        byte[] arr = new byte[100];
+        rd.nextBytes(arr);
+        FileHandler handler = new FileHandler("E:\\Courses\\Semester 3\\CN\\Project\\p2p-torrent\\peer1002", true, new CommonConfig());
+        handler.addFilePiece(arr, 0, "1002");
+    }
+
+    @Test
+    void getFilePiece() {
+    }
+
+    @Test
+    void completeScenario() throws IOException {
+        Random rd = new Random();
+        byte[] arr = new byte[100];
+        rd.nextBytes(arr);
+
+        CommonConfig commonConfig = new CommonConfig("E:\\Courses\\Semester 3\\CN\\Project\\p2p-torrent\\Common.cfg");
+
+        FileHandler handler = new FileHandler("E:\\Courses\\Semester 3\\CN\\Project\\p2p-torrent\\peer1002", true, commonConfig);
+        for (int i = 0; i < 5; i++) {
+            arr = new byte[100];
+            rd.nextBytes(arr);
+            handler.addFilePiece(arr, i, "1002");
+            byte[] filePiece = handler.getFilePiece(i);
+            Assertions.assertArrayEquals(arr, filePiece);
+        }
+        handler.writeFileToDisk();
+    }
+}
