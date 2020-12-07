@@ -9,6 +9,8 @@ import java.util.Map;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class FileHandler {
+
+	private final String fileDirPath;
 	private final String filePath;
 	private final boolean readOnly;
 	private final String prefix = "TempFile";
@@ -21,14 +23,18 @@ public class FileHandler {
 	private final CommonConfig commonConfig;
 	private final String peerID;
 
-	public FileHandler(String filePath, boolean readOnly, CommonConfig commonConfig, final String peerID) throws IOException {
-		this.filePath = filePath;
+	public FileHandler(String fileDirPath, boolean readOnly, CommonConfig commonConfig, final String peerID) throws IOException {
+		this.fileDirPath = fileDirPath;
+		this.filePath = fileDirPath + File.separator + commonConfig.getFileName();
 		this.readOnly = readOnly;
 		this.commonConfig = commonConfig;
 
 		lock = new ReentrantReadWriteLock();
 		pieces = new HashMap<>();
 		tempFileNames = new HashMap<>();
+
+		if(!Files.exists(Paths.get(fileDirPath)))
+			new File(fileDirPath).mkdir();
 
 		if (readOnly) {
             randomAccessFile = readFile();

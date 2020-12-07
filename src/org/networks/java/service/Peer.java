@@ -1,6 +1,7 @@
 package org.networks.java.service;
 
 import org.networks.java.helper.CommonConfig;
+import org.networks.java.helper.Const;
 import org.networks.java.helper.FileHandler;
 import org.networks.java.helper.PeerConfig;
 import org.networks.java.model.PeerInfo;
@@ -17,7 +18,8 @@ import java.util.stream.Collectors;
 
 public class Peer {
 
-    public int totalPieces;
+    public final int totalPieces;
+    public final String fileDirPath;
 
     public ConcurrentHashMap<String, PeerInfo> peerInfoTable;
     public ConcurrentHashMap<String, PeerInfo> neighborPeerInfoTable;
@@ -36,22 +38,17 @@ public class Peer {
     private final Timer taskTimer;
 
     public Peer(final String peerId) throws IOException {
-        initializePeer(peerId);
-        P2PLogger.setLogger(peerInfo.getPeerId());
-        pieceTracker = new ConcurrentHashMap<>();
-        pieceTracker.put(peerInfo.getPeerId(), new HashSet<>());
-        CommonConfig commonConfig = new CommonConfig();
+        commonConfig = new CommonConfig();
         totalPieces = (int) Math.ceil((double) commonConfig.getFileSize() / commonConfig.getPieceSize());
-        BitSet bitSet = new BitSet(totalPieces);
-        if (peerInfo.isFilePresent()) {
-            bitSet.set(0, totalPieces);
-            for (int i = 0; i < totalPieces; i++)
-                pieceTracker.get(peerInfo.getPeerId()).add(i);
-        }
-        peerInfo.setPieceIndexes(bitSet);
-        fileHandler = new FileHandler(commonConfig.getFileName(), peerInfo.isFilePresent(), commonConfig, peerId);
+
+        initializePeer(peerId);
+
+        fileDirPath = Const.FILE_DIR_PREXFIX_PATH + peerId;
+        fileHandler = new FileHandler(fileDirPath, peerInfo.isFilePresent(), commonConfig, peerId);
+
         interestedPeers = Collections.synchronizedList(new ArrayList<>());
         taskTimer = new Timer(true);
+        P2PLogger.setLogger(peerInfo.getPeerId());
     }
 
     public void run() {
@@ -77,9 +74,6 @@ public class Peer {
         peerInfoTable = new ConcurrentHashMap<>();
         neighborPeerInfoTable = new ConcurrentHashMap<>();
         neighborClientTable = new ConcurrentHashMap<>();
-
-        commonConfig = new CommonConfig();
-        totalPieces = (int) Math.ceil((double) commonConfig.getFileSize() / commonConfig.getPieceSize());
 
         for (PeerInfo curPeerInfo : new PeerConfig().getPeerInfo()) {
             curPeerInfo.setPieceIndexes(new BitSet(totalPieces));
@@ -130,8 +124,8 @@ public class Peer {
     public int getInterestedPieceIndex(String peerID) {
         try {
             bitLock.readLock().lock();
-            ArrayList<Integer> candidatePieces = new ArrayList<Integer>(pieceTracker.get(peerID));
-            candidatePieces.removeAll(new ArrayList<Integer>(pieceTracker.get(peerInfo.getPeerId())));
+            ArrayList<Integer> candidatePieces = new ArrayList<>(pieceTracker.get(peerID));
+            candidatePieces.removeAll(new ArrayList<>(pieceTracker.get(peerInfo.getPeerId())));
             if (!candidatePieces.isEmpty()) {
                 return candidatePieces.get(new Random().nextInt(candidatePieces.size()));
             }
@@ -192,16 +186,16 @@ public class Peer {
     }
 
     public List<Client> getNeighbors() {
-        return new ArrayList<Client>(neighborClientTable.values());
+        return new ArrayList<>(neighborClientTable.values());
     }
 
     public List<Client> getPeersFinished() {
         bitLock.readLock().lock();
         try {
-            List<Client> completedPeers = new ArrayList<Client>();
+            List<Client> completedPeers = new ArrayList<>();
             Iterator<Map.Entry<String, HashSet<Integer>>> pieceIterator = pieceTracker.entrySet().iterator();
             while (pieceIterator.hasNext()) {
-                Map.Entry<String, HashSet<Integer>> peer = (Map.Entry<String, HashSet<Integer>>) pieceIterator.next();
+                Map.Entry<String, HashSet<Integer>> peer = pieceIterator.next();
                 if (peer.getKey().equals(peerInfo.getPeerId()))
                     continue;
 

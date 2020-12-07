@@ -29,8 +29,8 @@ public class Server implements Runnable {
 					if (neighborPeerInfo.isFilePresent())
 						neighborPeerInfo.getPieceIndexes().set(0, peer.totalPieces);
 					new Thread(new Client(peer, neighborPeerInfo, socket, msgStream)).start();
+					P2PLogger.getLogger().log(Level.INFO, "Peer " + peer.peerInfo.getPeerId() + " is connected from " + neighborPeerId + ".");
 				}
-				P2PLogger.getLogger().log(Level.INFO, "Peer " + peer.peerInfo.getPeerId() + " is connected from " + neighborPeerId + ".");
 			}
 		} catch (IOException e) {
 			e.printStackTrace();

@@ -1,6 +1,7 @@
 # Don't track content of these folders
 .idea/
 out/
+peer_*/
 
 # Don't track content of these files
 *.iml

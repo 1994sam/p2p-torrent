@@ -49,7 +49,10 @@ public class Client implements Runnable {
         do {
             processHandShake();
         } while (!connectionEstablished);
+
         peer.neighborClientTable.put(neighborPeerInfo.getPeerId(), this);
+        processBitFieldMessage();
+
         while (!isShutdown) {
             try {
                 processMessage();
@@ -107,6 +110,11 @@ public class Client implements Runnable {
                 }
             }
         }
+    }
+
+    private void processBitFieldMessage() {
+        if(peer.peerInfo.getPieceIndexes().length() > 1)
+            msgStream.sendBitFieldMsg(peer.peerInfo.getPieceIndexes());
     }
 
     private void processBitFieldMessage(int messageLength) {

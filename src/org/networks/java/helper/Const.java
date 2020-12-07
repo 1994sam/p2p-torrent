@@ -16,6 +16,7 @@ public class Const {
 	public static final String COMMON_CFG_FILE_NAME = "Common.cfg";
 	public static final String PEER_INFO_CFG_FILE_NAME = "PeerInfoDummy.cfg";
 	public static final String USER_DIR_PATH = "user.dir";
+	public static final String FILE_DIR_PREXFIX_PATH = "peer_";
 
 	public static final String LOG_FILE_PATH = "log_peer_";
 	public static final String LOG_FILE_EXTENSTION = ".log";
