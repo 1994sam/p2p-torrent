@@ -1,5 +1,6 @@
 package org.networks.java.helper;
 
+import org.networks.java.model.PeerInfo;
 import org.networks.java.service.P2PLogger;
 
 import java.io.IOException;
@@ -31,11 +32,11 @@ public class MessageStream {
 		return msg;
 	}
 
-	public MessageStream(Socket socketCon) {
+	public MessageStream(Socket socket) {
 		try {
-			outStream = new ObjectOutputStream(socketCon.getOutputStream());
+			outStream = new ObjectOutputStream(socket.getOutputStream());
 			outStream.flush();
-			inStream = new ObjectInputStream(socketCon.getInputStream());
+			inStream = new ObjectInputStream(socket.getInputStream());
 		} catch (IOException e) {
 			P2PLogger.getLogger().log(Level.SEVERE, e.getMessage());
 		}
@@ -86,29 +87,27 @@ public class MessageStream {
 			return "";
 
 		String neighborPeerId =  msg.substring(headerLen + Const.HANDSHAKE_ZERO_BITS_LEN);
-		String logMsg = "Peer " + neighborPeerId + " sent handshake message: " + msg + ".";
-		P2PLogger.getLogger().log(Level.INFO, logMsg);
 		return neighborPeerId;
 	}
 
-	public void sendHandshakeMsg(String peerId) {
+	public boolean sendHandshakeMsg(String peerId) {
 		StringBuilder sb = new StringBuilder();
 		sb.append(Const.HANDSHAKE_HEADER);
 		for(int i = 0; i < Const.HANDSHAKE_ZERO_BITS_LEN; i++)
 			sb.append("0");
 		sb.append(peerId);
-		String logMsg = "Peer " + peerId + " sending handshake message: " + sb.toString() + ".";
-		P2PLogger.getLogger().log(Level.INFO, logMsg);
 
 		try {
 			outStream.write(sb.toString().getBytes(StandardCharsets.UTF_8));
 			outStream.flush();
 		} catch (IOException e) {
 			e.printStackTrace();
+			return false;
 		}
+		return true;
 	}
 
-	public void readMsg() {
+	public void readMsg(PeerInfo neighborPeerInfo) {
 		byte[] msgPayLoadLenBytes = new byte[Const.MSG_LEN_LEN];
 		byte[] msgTypeBytes = new byte[Const.MSG_TYPE_LEN];
 
@@ -130,7 +129,7 @@ public class MessageStream {
 		}
 
 		String logMsg = "Peer" + " receiving message with payload length: " + msgPayLoadLen + " and msgType: " + msgType + ".";
-		P2PLogger.getLogger().log(Level.INFO, logMsg);
+		System.out.println(logMsg);
 		switch (msgType) {
 			case 0:
 				readChokeMsg(msgPayLoadLen);
@@ -153,7 +152,7 @@ public class MessageStream {
 				break;
 
 			case 5:
-				readBitFieldMsg(msgPayLoadLen);
+				readBitFieldMsg(neighborPeerInfo, msgPayLoadLen);
 				break;
 
 			case 6:
@@ -476,25 +475,23 @@ public class MessageStream {
 		P2PLogger.getLogger().log(Level.INFO, logMsg);
 	}
 
-	public void readBitFieldMsg(int msgPayLoadLen) {
+	public boolean readBitFieldMsg(PeerInfo neighborPeerInfo, int msgPayLoadLen) {
 		byte[] msgPayLoadBytes = new byte[msgPayLoadLen];
-		boolean[] piecesPresent = new boolean[msgPayLoadLen];
-		int index = 0;
 
 		try {
 			int len = inStream.read(msgPayLoadBytes);
 		} catch (IOException e) {
 			e.printStackTrace();
+			neighborPeerInfo.setPieceIndexes(new BitSet());
 		}
 
-		for(byte val: msgPayLoadBytes)
-			piecesPresent[index++] = val == 1;
-
-		String logMsg = "Peer" + " received Bit Field message: " + Arrays.toString(piecesPresent) + ".";
-		P2PLogger.getLogger().log(Level.INFO, logMsg);
+		neighborPeerInfo.setPieceIndexes(BitSet.valueOf(msgPayLoadBytes));
+		System.out.println(neighborPeerInfo.getPieceIndexes().toString());
+		return true;
 	}
 
-	public void sendBitFieldMsg(int msgPayLoadLen) {
+	public boolean sendBitFieldMsg(BitSet pieceIndexes) {
+		int msgPayLoadLen = (int) Math.ceil((double) pieceIndexes.length() / 8);
 		byte[] msgBytes = new byte[Const.MSG_LEN_LEN + Const.MSG_TYPE_LEN + msgPayLoadLen];
 		int index = 0;
 
@@ -509,14 +506,7 @@ public class MessageStream {
 		for(byte val: byteBuffer.array())
 			msgBytes[index++] = val;
 
-		BitSet temp = new BitSet(msgPayLoadLen);
-		for(int i = 0; i < 306 ; i++){
-			temp.set(i, true);
-		}
-
-		byte[] t = temp.toByteArray();
-
-		for(byte val: t)
+		for(byte val: pieceIndexes.toByteArray())
 			msgBytes[index++] = val;
 
 		try {
@@ -524,15 +514,16 @@ public class MessageStream {
 			outStream.flush();
 		} catch (IOException e) {
 			e.printStackTrace();
+			return false;
 		}
 
 		printByteArr(msgBytes);
-		String logMsg = "Peer" + " sending Bit Field message: " + Arrays.toString(msgBytes) + ".";
-		P2PLogger.getLogger().log(Level.INFO, logMsg);
+		return true;
 	}
 
 	public void printByteArr(byte[] msgBytes){
 		for(byte val: msgBytes)
 			System.out.print(val + " ");
+		System.out.println();
 	}
 }

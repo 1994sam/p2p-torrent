@@ -1,97 +1,60 @@
 package org.networks.java.service;
 
-import org.networks.java.helper.CommonConfig;
 import org.networks.java.helper.Const;
 import org.networks.java.helper.MessageStream;
 import org.networks.java.model.PeerInfo;
 
 import java.io.IOException;
 import java.net.Socket;
-import java.util.List;
 import java.util.logging.Level;
 
 public class Client implements Runnable {
 
-    private boolean connected;
-    private String msg;
-    private String logMsg;
-    final private CommonConfig commonConfig;
-    private MessageStream msgStream;
-    private final PeerInfo peerInfo;
-    private PeerInfo neighborPeer;
-    private final Peer peer;
-    private List<PeerInfo> neighborPeers;
+	private boolean connectionEstablished;
 
-    public Client() {
-        this(null, null, null, null);
-    }
+	private MessageStream msgStream;
+	private Peer peer;
+	private PeerInfo neighborPeerInfo;
+	private Socket socket;
 
-    public Client(final CommonConfig commonConfig, final PeerInfo peerInfo, final List<PeerInfo> neighborPeers, final Peer peer) {
-        connected = false;
-        msg = "";
-        logMsg = "";
-        this.commonConfig = commonConfig;
-        this.peerInfo = peerInfo;
-        neighborPeer = null;
-        this.neighborPeers = neighborPeers;
-        this.peer = peer;
-    }
+	public Client(final Peer peer, final PeerInfo neighborPeerInfo) {
+		Socket socket = null;
+		try {
+			socket = new Socket(neighborPeerInfo.getHostName(), neighborPeerInfo.getPortNum());
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		initializeClient(peer, neighborPeerInfo, socket, new MessageStream(socket),false);
+	}
 
-    @Override
-    public void run() {
+	public Client(final Peer peer, final PeerInfo neighborPeerInfo, final Socket socket, final MessageStream msgStream) {
+		initializeClient(peer, neighborPeerInfo, socket, msgStream, true);
+	}
 
-        neighborPeer = neighborPeers.get(0);
+	@Override
+	public void run() {
+		do processHandShake();
+		while(!connectionEstablished);
+		peer.neighborClientTable.put(neighborPeerInfo.getPeerId(), this);
+	}
 
-        while (true) {
-            try {
-                if (!connected) {
-                    Socket socketCon = new Socket(neighborPeer.getHostName(), neighborPeer.getPortNum());
-                    msgStream = new MessageStream(socketCon);
-                    P2PLogger.getLogger().log(Level.INFO, "Peer is connected to " + neighborPeer.getHostName() + ":" + neighborPeer.getPortNum());
-                    processHandshake();
-                } else
-                    processMessage();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-    }
+	private void initializeClient(final Peer peer, final PeerInfo neighborPeerInfo, final Socket socket, final MessageStream msgStream, final boolean connectionEstablished) {
+		this.peer = peer;
+		this.neighborPeerInfo = neighborPeerInfo;
+		this.socket = socket;
+		this.msgStream = msgStream;
+		this.connectionEstablished = connectionEstablished;
+	}
 
-    private void processHandshake() {
-        logMsg = "Peer " + peerInfo.getPeerId() + " sending connection request to " + neighborPeer.getPeerId() + ".";
-        P2PLogger.getLogger().log(Level.INFO, logMsg);
-        msgStream.sendHandshakeMsg(peerInfo.getPeerId());
-
-        while (!connected) {
-            String neighborPeerId = msgStream.readHandshakeMsg(Const.HANDSHAKE_MSG_LEN);
-            if (!neighborPeerId.isEmpty() && neighborPeer.getPeerId().equals(neighborPeerId)) {
-                logMsg = "Peer " + peerInfo.getPeerId() + " makes a connection to " + neighborPeer.getPeerId() + ".";
-                P2PLogger.getLogger().log(Level.INFO, logMsg);
-                connected = true;
-                processBitField();
-//				msgStream.sendInterestedMsg(0);
-//				msgStream.sendRequestMsg(15);
-            }
-        }
-    }
-
-    private void processBitField() {
-        if (peerInfo.isFilePresent()) {
-            msgStream.sendBitFieldMsg(306);
-        }
-    }
-
-    private void processMessage() {
-        msgStream.readMsg();
-    }
-
-    private void processPieceMessage() {
-
-    }
-
-    public void sendHaveMsg(int pieceIndex) {
-        msgStream.sendHaveMsg(pieceIndex);
-
-    }
-
+	private void processHandShake() {
+		if(msgStream.sendHandshakeMsg(peer.peerInfo.getPeerId())) {
+			while (!connectionEstablished) {
+				String neighborPeerId = msgStream.readHandshakeMsg(Const.HANDSHAKE_MSG_LEN);
+				if (!neighborPeerId.isEmpty() && neighborPeerInfo.getPeerId().equals(neighborPeerId)) {
+					connectionEstablished = true;
+					P2PLogger.getLogger().log(Level.INFO, "Peer " + peer.peerInfo.getPeerId() + " makes a connection to " + neighborPeerInfo.getPeerId() + ".");
+				}
+			}
+		}
+	}
 }

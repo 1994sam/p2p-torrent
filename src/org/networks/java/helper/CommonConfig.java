@@ -52,4 +52,16 @@ public class CommonConfig {
 			e.printStackTrace();
 		}
 	}
+
+	@Override
+	public String toString() {
+		return "CommonConfig{" +
+			"NumberOfPreferredNeighbors='" + getNumberOfPreferredNeighbors() + '\'' +
+			", UnchokingInterval='" + getUnchokingInterval() + '\'' +
+			", OptimisticUnchokingInterval=" + getOptimisticUnchokingInterval() +
+			", FileName=" + getFileName() +
+			", FileSize=" + getFileSize() +
+			", PieceSize=" + getPieceSize()+
+			'}';
+	}
 }

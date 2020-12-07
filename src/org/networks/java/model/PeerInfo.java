@@ -1,11 +1,14 @@
 package org.networks.java.model;
 
+import java.util.BitSet;
+
 public class PeerInfo {
 
 	private String peerId;
 	private String hostName;
 	private int portNum;
 	private boolean filePresent;
+	private BitSet pieceIndexes;
 
 	public String getPeerId() {
 		return peerId;
@@ -31,6 +34,14 @@ public class PeerInfo {
 		this.portNum = port;
 	}
 
+	public BitSet getPieceIndexes() {
+		return pieceIndexes;
+	}
+
+	public void setPieceIndexes(BitSet pieceIndexes) {
+		this.pieceIndexes = pieceIndexes;
+	}
+
 	public boolean isFilePresent() {
 		return filePresent;
 	}
@@ -39,11 +50,20 @@ public class PeerInfo {
 		this.filePresent = filePresent;
 	}
 
+	public PeerInfo() {
+		this(null);
+	}
+
+	public PeerInfo(String peerId) {
+		this(peerId, null, -1, false);
+	}
+
 	public PeerInfo(String peerId, String hostName, int port, boolean filePresent) {
 		this.peerId = peerId;
 		this.hostName = hostName;
 		this.portNum = port;
 		this.filePresent = filePresent;
+		this.pieceIndexes = new BitSet();
 	}
 
 	@Override
@@ -53,6 +73,7 @@ public class PeerInfo {
 			", hostName='" + hostName + '\'' +
 			", portNumber=" + portNum +
 			", filePresent=" + filePresent +
+			", pieceIndexes=" + pieceIndexes.toString()+
 			'}';
 	}
 }

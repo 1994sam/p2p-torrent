@@ -6,6 +6,7 @@ out/
 *.iml
 *.log
 *.log.lck
+*.log.*
 
 # Compiled source
 *.class

@@ -35,6 +35,7 @@ public class P2PLogger {
 			e.printStackTrace();
 		}
 	}
+
 	public static Logger getLogger() {
 		return logger;
 	}

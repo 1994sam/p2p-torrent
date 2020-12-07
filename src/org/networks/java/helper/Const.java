@@ -14,7 +14,7 @@ public class Const {
 	public final static String HANDSHAKE_HEADER = "P2PFILESHARINGPROJ";
 
 	public static final String COMMON_CFG_FILE_NAME = "Common.cfg";
-	public static final String PEER_INFO_CFG_FILE_NAME = "PeerInfo.cfg";
+	public static final String PEER_INFO_CFG_FILE_NAME = "PeerInfoDummy.cfg";
 	public static final String USER_DIR_PATH = "user.dir";
 
 	public static final String LOG_FILE_PATH = "log_peer_";
