@@ -14,7 +14,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
 
 public class Peer {
 
@@ -46,9 +45,26 @@ public class Peer {
         fileDirPath = Const.FILE_DIR_PREXFIX_PATH + peerId;
         fileHandler = new FileHandler(fileDirPath, peerInfo.isFilePresent(), commonConfig, peerId);
 
+        initializeTracker();
+
         interestedPeers = Collections.synchronizedList(new ArrayList<>());
         taskTimer = new Timer(true);
         P2PLogger.setLogger(peerInfo.getPeerId());
+    }
+
+    private void initializeTracker() {
+        pieceTracker = new ConcurrentHashMap<>();
+
+        BitSet bitSet = new BitSet(totalPieces);
+        pieceTracker.put(peerInfo.getPeerId(), new HashSet<>());
+
+        if (peerInfo.isFilePresent()) {
+            bitSet.set(0, totalPieces);
+            for (int i = 0; i < totalPieces; i++)
+                pieceTracker.get(peerInfo.getPeerId()).add(i);
+        }
+
+        peerInfo.setPieceIndexes(bitSet);
     }
 
     public void run() {
@@ -60,13 +76,15 @@ public class Peer {
             e.printStackTrace();
         }
         updateNeighbors();
-        establishConnection();
+        if(!peerInfo.isFilePresent()) {
+            establishConnection();
+        }
         scheduleTasks();
     }
 
     private void scheduleTasks() {
-        taskTimer.schedule(new OptimisticUnchokingTask(this), 0, commonConfig.getOptimisticUnchokingInterval());
         taskTimer.schedule(new VerifyCompletionTask(this), 10000, 5000);
+        taskTimer.schedule(new OptimisticUnchokingTask(this), 0, commonConfig.getOptimisticUnchokingInterval() * 10L);
         //TODO: add task for preferred neighbor
     }
 
@@ -189,6 +207,13 @@ public class Peer {
         return new ArrayList<>(neighborClientTable.values());
     }
 
+    public void addNeighbor(final Client client) {
+        String peerId = client.getPeer().peerInfo.getPeerId();
+        neighborPeerInfoTable.put(peerId, client.getPeer().peerInfo);
+        neighborClientTable.put(peerId, client);
+        pieceTracker.put(peerId, new HashSet<>());
+    }
+
     public List<Client> getPeersFinished() {
         bitLock.readLock().lock();
         try {
@@ -216,7 +241,9 @@ public class Peer {
 
     public void shutdown() throws IOException {
         neighborClientTable.forEach((key, value) -> value.shutdown());
-        fileHandler.writeFileToDisk();
+        if(!peerInfo.isFilePresent()) {
+            fileHandler.writeFileToDisk();
+        }
         try {
             Thread.sleep(5000);
         } catch (InterruptedException e) {

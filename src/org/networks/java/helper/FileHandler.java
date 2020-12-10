@@ -36,14 +36,13 @@ public class FileHandler {
 		if(!Files.exists(Paths.get(fileDirPath)))
 			new File(fileDirPath).mkdir();
 
+		this.peerID = peerID;
 		if (readOnly) {
-            randomAccessFile = readFile();
+			randomAccessFile = readFile();
 		} else {
 			randomAccessFile = new RandomAccessFile(filePath, "rw");
 			randomAccessFile.setLength(commonConfig.getFileSize());
 		}
-
-		this.peerID = peerID;
 	}
 
 	private RandomAccessFile readFile() throws IOException {
@@ -62,9 +61,9 @@ public class FileHandler {
 	}
 
 	public void addFilePiece(byte[] piece, int pieceIndex, String peerID) throws IOException {
-		String executionPath = System.getProperty("user.dir");
-		String folderPath = executionPath + File.separator + "peer" + peerID + File.separator;
-		File tempFile = File.createTempFile(prefix, null, new File(folderPath));
+//		String executionPath = System.getProperty("user.dir");
+//		String folderPath = executionPath + File.separator + "peer_" + peerID + File.separator;
+		File tempFile = File.createTempFile(prefix, null, new File(fileDirPath));
 		tempFileNames.put(pieceIndex, tempFile.getAbsolutePath());
 		FileOutputStream fos = new FileOutputStream(tempFile);
 		fos.write(piece);
@@ -86,10 +85,10 @@ public class FileHandler {
 	}
 
 	public void writeFileToDisk() throws IOException {
-		String executionPath = System.getProperty("user.dir");
-		String folderPath = executionPath + File.separator + "peer" + peerID + File.separator;
+//		String executionPath = System.getProperty("user.dir");
+//		String folderPath = executionPath + File.separator + "peer_" + peerID + File.separator;
 
-		File dir = new File(folderPath);
+		File dir = new File(fileDirPath);
 
 		PrintWriter pw = new PrintWriter(dir.getAbsolutePath() + File.separator + commonConfig.getFileName());
 

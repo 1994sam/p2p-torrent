@@ -107,9 +107,11 @@ public class Client implements Runnable {
                 if (!neighborPeerId.isEmpty() && neighborPeerInfo.getPeerId().equals(neighborPeerId)) {
                     connectionEstablished = true;
                     P2PLogger.getLogger().log(Level.INFO, "Peer " + peer.peerInfo.getPeerId() + " makes a connection to " + neighborPeerInfo.getPeerId() + ".");
+                    peer.addNeighbor(this);
                 }
             }
         }
+
     }
 
     private void processBitFieldMessage() {
