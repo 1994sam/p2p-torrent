@@ -14,6 +14,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 
 public class Peer {
 
@@ -24,7 +25,7 @@ public class Peer {
     public ConcurrentHashMap<String, PeerInfo> neighborPeerInfoTable;
     public ConcurrentHashMap<String, Client> neighborClientTable;
 
-    private ConcurrentHashMap<String, HashSet<Integer>> pieceTracker;
+    public ConcurrentHashMap<String, HashSet<Integer>> pieceTracker;
 
     public CommonConfig commonConfig;
     public PeerInfo peerInfo;
@@ -254,6 +255,16 @@ public class Peer {
 
     public Timer getTaskTimer() {
         return taskTimer;
+    }
+
+    public void updatePieceTracer(PeerInfo neighborPeerInfo) {
+        for(int i = 0; i < totalPieces; i++) {
+            if(peerInfo.getPieceIndexes().get(i))
+                pieceTracker.get(neighborPeerInfo.getPeerId()).remove(i);
+            else if(neighborPeerInfo.getPieceIndexes().get(i))
+                pieceTracker.get(neighborPeerInfo.getPeerId()).add(i);
+        }
+        System.out.println(pieceTracker.get(neighborPeerInfo.getPeerId()).toString());
     }
 
 }
