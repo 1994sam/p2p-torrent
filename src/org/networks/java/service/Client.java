@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.net.Socket;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.HashSet;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.logging.Level;
@@ -106,6 +107,7 @@ public class Client implements Runnable {
                 String neighborPeerId = msgStream.readHandshakeMsg(Const.HANDSHAKE_MSG_LEN);
                 if (!neighborPeerId.isEmpty() && neighborPeerInfo.getPeerId().equals(neighborPeerId)) {
                     connectionEstablished = true;
+                    peer.neighborPeerInfoTable.put(neighborPeerId, neighborPeerInfo);
                     P2PLogger.getLogger().log(Level.INFO, "Peer " + peer.peerInfo.getPeerId() + " makes a connection to " + neighborPeerInfo.getPeerId() + ".");
                 }
             }
@@ -119,10 +121,12 @@ public class Client implements Runnable {
 
     private void processBitFieldMessage(int messageLength) {
         msgStream.readBitFieldMsg(neighborPeerInfo, messageLength); //reads the bit field message as well as sets the
-        // bit field in the neighbors peer info.
-        if (peer.getInterestedPieceIndex(neighborPeerInfo.getPeerId()) != -1) {
+        peer.pieceTracker.computeIfAbsent(neighborPeerInfo.getPeerId(), k -> new HashSet<>());
+
+        peer.updatePieceTracer(neighborPeerInfo);
+        if(peer.pieceTracker.get(neighborPeerInfo.getPeerId()).size() > 0) {
             P2PLogger.getLogger().log(Level.INFO, "Peer " + peer.peerInfo.getPeerId() + " sending interested message to Peer " + neighborPeerInfo.getPeerId());
-            msgStream.sendInterestedMsg(0); //TODO: is this the correct way?
+            msgStream.sendInterestedMsg(0);
         }
     }
 

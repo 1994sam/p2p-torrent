@@ -282,8 +282,6 @@ public class MessageStream {
         }
 
         printByteArr(msgBytes);
-        String logMsg = "Peer" + " sending Interested message: " + Arrays.toString(msgBytes) + ".";
-        P2PLogger.getLogger().log(Level.INFO, logMsg);
     }
 
     public void readNotInterestedMsg(int msgPayLoadLen) {

@@ -25,7 +25,7 @@ public class Peer {
     public ConcurrentHashMap<String, PeerInfo> neighborPeerInfoTable;
     public ConcurrentHashMap<String, Client> neighborClientTable;
 
-    private ConcurrentHashMap<String, HashSet<Integer>> pieceTracker;
+    public ConcurrentHashMap<String, HashSet<Integer>> pieceTracker;
 
     public CommonConfig commonConfig;
     public PeerInfo peerInfo;
@@ -46,6 +46,7 @@ public class Peer {
         fileDirPath = Const.FILE_DIR_PREXFIX_PATH + peerId;
         fileHandler = new FileHandler(fileDirPath, peerInfo.isFilePresent(), commonConfig, peerId);
 
+        pieceTracker = new ConcurrentHashMap<>();
         interestedPeers = Collections.synchronizedList(new ArrayList<>());
         taskTimer = new Timer(true);
         P2PLogger.setLogger(peerInfo.getPeerId());
@@ -227,6 +228,16 @@ public class Peer {
 
     public Timer getTaskTimer() {
         return taskTimer;
+    }
+
+    public void updatePieceTracer(PeerInfo neighborPeerInfo) {
+        for(int i = 0; i < totalPieces; i++) {
+            if(peerInfo.getPieceIndexes().get(i))
+                pieceTracker.get(neighborPeerInfo.getPeerId()).remove(i);
+            else if(neighborPeerInfo.getPieceIndexes().get(i))
+                pieceTracker.get(neighborPeerInfo.getPeerId()).add(i);
+        }
+        System.out.println(pieceTracker.get(neighborPeerInfo.getPeerId()).toString());
     }
 
 }
