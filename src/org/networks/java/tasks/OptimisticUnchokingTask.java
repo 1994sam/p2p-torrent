@@ -25,15 +25,11 @@ public class OptimisticUnchokingTask extends TimerTask {
         neighbors.removeAll(peersFinished);
         if (!neighbors.isEmpty()) {
             Random random = new Random();
-            Client client = neighbors.get(0);
-            client.unchokeNeighbor();
-            if (client.getPeer().peerInfo.getPeerId().equals(peer.peerInfo.getPeerId())) {
-                client = neighbors.get(neighbors.size() - 1);
-            }
-            if (!client.getPeer().peerInfo.getPeerId().equals(peer.peerInfo.getPeerId())) {
-                client.unchokeNeighbor();
-                P2PLogger.getLogger().log(Level.INFO, "Peer " + peer.peerInfo.getPeerId()
-                        + " has the unchoked neighbor " + client.getPeer().peerInfo.getPeerId());
+            Client client = neighbors.get(random.nextInt(neighbors.size()));
+            if(client.getPeer().peerInfo.getPeerId() != peer.peerInfo.getPeerId()) {
+//                client.unchokeNeighbor();
+//                P2PLogger.getLogger().log(Level.INFO, "Peer " + peer.peerInfo.getPeerId()
+//                        + " has the unchoked neighbor " + client.getPeer().peerInfo.getPeerId());
             }
         }
     }

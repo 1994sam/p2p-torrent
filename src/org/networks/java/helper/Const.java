@@ -1,7 +1,5 @@
 package org.networks.java.helper;
 
-import org.networks.java.model.PeerInfo;
-
 public class Const {
 
 	public final static int BYTE_LEN = 8;
@@ -11,6 +9,7 @@ public class Const {
 
 	public final static int HANDSHAKE_ZERO_BITS_LEN = 10;
 	public final static int HANDSHAKE_MSG_LEN = 32;
+	public final static int PIECE_INDEX_PAYLOAD_LEN = 4;
 	public final static String HANDSHAKE_HEADER = "P2PFILESHARINGPROJ";
 
 	public static final String COMMON_CFG_FILE_NAME = "Common.cfg";

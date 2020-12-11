@@ -25,12 +25,13 @@ public class Peer {
     public ConcurrentHashMap<String, Client> neighborClientTable;
 
     public ConcurrentHashMap<String, HashSet<Integer>> pieceTracker;
+    public Map<Integer, byte[]> pieces;
 
     public CommonConfig commonConfig;
     public PeerInfo peerInfo;
 
     private final ReadWriteLock bitLock = new ReentrantReadWriteLock();
-    private FileHandler fileHandler;
+    public FileHandler fileHandler;
 
     private final List<String> interestedPeers;
 
@@ -41,11 +42,12 @@ public class Peer {
         totalPieces = (int) Math.ceil((double) commonConfig.getFileSize() / commonConfig.getPieceSize());
 
         initializePeer(peerId);
+        initializeTracker();
+        updatePieceTracer(null);
 
         fileDirPath = Const.FILE_DIR_PREXFIX_PATH + peerId;
         fileHandler = new FileHandler(fileDirPath, peerInfo.isFilePresent(), commonConfig, peerId);
-
-        initializeTracker();
+        pieces = fileHandler.getPieces();
 
         interestedPeers = Collections.synchronizedList(new ArrayList<>());
         taskTimer = new Timer(true);
@@ -79,12 +81,12 @@ public class Peer {
         if(!peerInfo.isFilePresent()) {
             establishConnection();
         }
-        scheduleTasks();
+//        scheduleTasks();
     }
 
     private void scheduleTasks() {
         taskTimer.schedule(new VerifyCompletionTask(this), 10000, 5000);
-        taskTimer.schedule(new OptimisticUnchokingTask(this), 0, commonConfig.getOptimisticUnchokingInterval() * 100L);
+        taskTimer.schedule(new OptimisticUnchokingTask(this), 0, commonConfig.getOptimisticUnchokingInterval() * 10L);
         //TODO: add task for preferred neighbor
     }
 
@@ -130,9 +132,10 @@ public class Peer {
         }
     }
 
-    public boolean isPieceDownloaded(Integer pieceIndex) {
+    public boolean isPieceRequired(Integer pieceIndex) {
         bitLock.readLock().lock();
         try {
+//            return peerInfo.getPieceIndexes().get(pieceIndex);
             return pieceTracker.get(peerInfo.getPeerId()).contains(pieceIndex);
         } finally {
             bitLock.readLock().unlock();
@@ -161,7 +164,7 @@ public class Peer {
             }
 
             if (!peerInfo.getPieceIndexes().get(pieceIndex)) {
-                fileHandler.addFilePiece(data, pieceIndex, peerInfo.getPeerId());
+                fileHandler.addFilePiece(data, pieceIndex);
                 peerInfo.getPieceIndexes().set(pieceIndex);
                 pieceTracker.get(peerInfo.getPeerId()).add(pieceIndex);
                 if (peerInfo.getPieceIndexes().nextClearBit(0) >= totalPieces) {
@@ -257,11 +260,17 @@ public class Peer {
     }
 
     public void updatePieceTracer(PeerInfo neighborPeerInfo) {
-        for (int i = 0; i < totalPieces; i++) {
-            if (peerInfo.getPieceIndexes().get(i))
-                pieceTracker.get(neighborPeerInfo.getPeerId()).remove(i);
-            else if (neighborPeerInfo.getPieceIndexes().get(i))
-                pieceTracker.get(neighborPeerInfo.getPeerId()).add(i);
+        for(int i = 0; i < totalPieces; i++) {
+            if(peerInfo.getPieceIndexes().get(i)) {
+                pieceTracker.get(peerInfo.getPeerId()).remove(i);
+                if(neighborPeerInfo != null)
+                    pieceTracker.get(neighborPeerInfo.getPeerId()).remove(i);
+            }
+            else {
+                pieceTracker.get(peerInfo.getPeerId()).add(i);
+                if(neighborPeerInfo != null && neighborPeerInfo.getPieceIndexes().get(i))
+                    pieceTracker.get(neighborPeerInfo.getPeerId()).add(i);
+            }
         }
         System.out.println(pieceTracker.get(neighborPeerInfo.getPeerId()).toString());
     }
