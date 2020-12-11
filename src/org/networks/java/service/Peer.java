@@ -5,7 +5,6 @@ import org.networks.java.helper.Const;
 import org.networks.java.helper.FileHandler;
 import org.networks.java.helper.PeerConfig;
 import org.networks.java.model.PeerInfo;
-import org.networks.java.tasks.OptimisticUnchokingTask;
 import org.networks.java.tasks.VerifyCompletionTask;
 
 import java.io.IOException;
@@ -14,7 +13,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
 
 public class Peer {
 
@@ -90,7 +88,7 @@ public class Peer {
     }
 
     private void scheduleTasks() {
-        taskTimer.schedule(new VerifyCompletionTask(this), 100, 50);
+        taskTimer.schedule(new VerifyCompletionTask(this), 10000, 5000);
 //        taskTimer.schedule(new OptimisticUnchokingTask(this), 0, commonConfig.getOptimisticUnchokingInterval() * 10L);
         //TODO: add task for preferred neighbor
     }
@@ -273,14 +271,14 @@ public class Peer {
     public void shutdown() throws IOException {
         System.out.println(peerInfo.getPeerId() + " Shutting down!!___________________________________");
         neighborClientTable.forEach((key, value) -> value.shutdown());
-        if (!peerInfo.isFilePresent()) {
-            fileHandler.writeFileToDisk();
-        }
-        try {
-            Thread.sleep(50);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+//        if (!peerInfo.isFilePresent()) {
+//            fileHandler.writeFileToDisk();
+//        }
+//        try {
+//            Thread.sleep(50);
+//        } catch (InterruptedException e) {
+//            e.printStackTrace();
+//        }
         System.exit(0);
     }
 

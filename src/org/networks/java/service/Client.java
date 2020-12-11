@@ -51,7 +51,8 @@ public class Client implements Runnable {
             processHandShake();
         } while (!connectionEstablished);
 
-        peer.neighborClientTable.put(neighborPeerInfo.getPeerId(), this);
+        peer.addNeighbor(this);
+//        peer.neighborClientTable.put(neighborPeerInfo.getPeerId(), this);
         peer.peerInfoTable.put(neighborPeerInfo.getPeerId(), neighborPeerInfo);
         processBitFieldMessage();
 
@@ -59,7 +60,7 @@ public class Client implements Runnable {
             try {
                 processMessage();
             } catch (IOException e) {
-                e.printStackTrace();
+//                e.printStackTrace();
             }
         }
     }
@@ -110,7 +111,6 @@ public class Client implements Runnable {
                     connectionEstablished = true;
                     peer.neighborPeerInfoTable.put(neighborPeerId, neighborPeerInfo);
                     P2PLogger.getLogger().log(Level.INFO, "Peer " + peer.peerInfo.getPeerId() + " makes a connection to " + neighborPeerInfo.getPeerId() + ".");
-                    peer.addNeighbor(this);
                 }
             }
         }
@@ -132,7 +132,7 @@ public class Client implements Runnable {
             msgStream.sendInterestedMsg(0);
         }
 
-        for(int pieceIndex: peer.pieceTracker.get(neighborPeerInfo.getPeerId())) {
+        for (int pieceIndex : peer.pieceTracker.get(neighborPeerInfo.getPeerId())) {
             requestFileData(pieceIndex);
         }
         try {
@@ -243,7 +243,11 @@ public class Client implements Runnable {
         try {
             isShutdown = true;
             msgStream.getOutStream().flush();
-            socket.close();
+            if (socket != null) {
+                msgStream.getInStream().close();
+                msgStream.getOutStream().close();
+                socket.close();
+            }
         } catch (IOException e) {
             // Do nothing
         }

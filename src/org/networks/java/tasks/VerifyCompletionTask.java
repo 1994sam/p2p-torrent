@@ -15,14 +15,15 @@ public class VerifyCompletionTask extends TimerTask {
 
     @Override
     public void run() {
-        if (peer.areAllNeighborsCompleted()
-                && peer.getPieceTracker().get(peer.peerInfo.getPeerId()).size() == 0) {
+        if (true
+                && peer.peerInfo.isFilePresent()) {
             try {
+                peer.getTaskTimer().cancel();
                 peer.shutdown();
             } catch (IOException e) {
                 e.printStackTrace();
             }
-            peer.getTaskTimer().cancel();
+
         }
     }
 }
