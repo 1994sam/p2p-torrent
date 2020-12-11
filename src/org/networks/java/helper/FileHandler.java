@@ -23,6 +23,10 @@ public class FileHandler {
 	private final CommonConfig commonConfig;
 	private final String peerID;
 
+	public Map<Integer, byte[]> getPieces() {
+		return pieces;
+	}
+
 	public FileHandler(String fileDirPath, boolean readOnly, CommonConfig commonConfig, final String peerID) throws IOException {
 		this.fileDirPath = fileDirPath;
 		this.filePath = fileDirPath + File.separator + commonConfig.getFileName();
@@ -33,7 +37,7 @@ public class FileHandler {
 		pieces = new HashMap<>();
 		tempFileNames = new HashMap<>();
 
-		if(!Files.exists(Paths.get(fileDirPath)))
+		if (!Files.exists(Paths.get(fileDirPath)))
 			new File(fileDirPath).mkdir();
 
 		this.peerID = peerID;
@@ -60,9 +64,7 @@ public class FileHandler {
 		return file;
 	}
 
-	public void addFilePiece(byte[] piece, int pieceIndex, String peerID) throws IOException {
-//		String executionPath = System.getProperty("user.dir");
-//		String folderPath = executionPath + File.separator + "peer_" + peerID + File.separator;
+	public void addFilePiece(byte[] piece, int pieceIndex) throws IOException {
 		File tempFile = File.createTempFile(prefix, null, new File(fileDirPath));
 		tempFileNames.put(pieceIndex, tempFile.getAbsolutePath());
 		FileOutputStream fos = new FileOutputStream(tempFile);
@@ -85,10 +87,13 @@ public class FileHandler {
 	}
 
 	public void writeFileToDisk() throws IOException {
-//		String executionPath = System.getProperty("user.dir");
-//		String folderPath = executionPath + File.separator + "peer_" + peerID + File.separator;
 
-		File dir = new File(fileDirPath);
+		OutputStream os = new FileOutputStream(filePath);
+
+		for(byte[] piece: pieces.values())
+			os.write(piece);
+
+		/*File dir = new File(fileDirPath);
 
 		PrintWriter pw = new PrintWriter(dir.getAbsolutePath() + File.separator + commonConfig.getFileName());
 
@@ -105,8 +110,8 @@ public class FileHandler {
 				}
 				pw.flush();
 			}
-		}
-		System.out.println("Reading from all files in directory " + dir.getName() + " Completed");
+		}*/
+		System.out.println("Reading from all files in directory " + fileDirPath + " Completed");
 	}
 
 }

@@ -52,7 +52,7 @@ public class FileDownloadManager {
                 return false;
 
             if (!piecesBitSet.get(pieceIndex)) {
-                fileHandler.addFilePiece(data, pieceIndex, peerInfo.getPeerId());
+                fileHandler.addFilePiece(data, pieceIndex);
                 piecesBitSet.set(pieceIndex);
                 if (piecesBitSet.nextClearBit(0) >= totalPieces) {
                     P2PLogger.getLogger().info("Peer " + peerInfo.getPeerId() + " has finished downloading the file.");

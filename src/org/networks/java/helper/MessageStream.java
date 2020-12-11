@@ -280,8 +280,6 @@ public class MessageStream {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-        printByteArr(msgBytes);
     }
 
     public void readNotInterestedMsg(int msgPayLoadLen) {
@@ -318,11 +316,6 @@ public class MessageStream {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-        printByteArr(msgBytes);
-        String logMsg = "Peer" + " sending NotInterested message: " + Arrays.toString(msgBytes) + ".";
-        P2PLogger.getLogger().log(Level.INFO, logMsg);
-
     }
 
     // ch
@@ -373,7 +366,7 @@ public class MessageStream {
         P2PLogger.getLogger().log(Level.INFO, logMsg);
     }
 
-    public void readRequestMsg(int msgPayLoadLen) {
+    public int readRequestMsg(int msgPayLoadLen) {
         byte[] msgPayLoadBytes = new byte[msgPayLoadLen];
 
         try {
@@ -381,12 +374,10 @@ public class MessageStream {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-        String logMsg = "Peer" + " received Request message" + ".";
-        P2PLogger.getLogger().log(Level.INFO, logMsg);
+        return byteArrayToInt(msgPayLoadBytes);
     }
 
-    public void sendRequestMsg(int msgPayLoadLen) {
+    public void sendRequestMsg(int msgPayLoadLen, int pieceIndex) {
         byte[] msgBytes = new byte[Const.MSG_LEN_LEN + Const.MSG_TYPE_LEN + msgPayLoadLen];
         int index = 0;
 
@@ -401,14 +392,8 @@ public class MessageStream {
         for (byte val : byteBuffer.array())
             msgBytes[index++] = val;
 
-        BitSet temp = new BitSet(msgPayLoadLen);
-        for (int i = 0; i < msgPayLoadLen; i++) {
-            temp.set(i, true);
-        }
-
-        byte[] t = temp.toByteArray();
-
-        for (byte val : t)
+        intToByteArray(pieceIndex);
+        for (byte val : intToByteArray(pieceIndex))
             msgBytes[index++] = val;
 
         try {
@@ -417,14 +402,10 @@ public class MessageStream {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-        printByteArr(msgBytes);
-        String logMsg = "Peer" + " sending Request message: " + Arrays.toString(msgBytes) + ".";
-        P2PLogger.getLogger().log(Level.INFO, logMsg);
     }
 
     public byte[] readPieceMsg(int msgPayLoadLen) {
-        byte[] data = new byte[msgPayLoadLen - 4];
+        byte[] data = new byte[msgPayLoadLen];
         try {
             inStream.readFully(data);
         } catch (IOException e) {
@@ -434,39 +415,13 @@ public class MessageStream {
     }
 
     public void sendPieceMsg(int pieceIndex, byte[] piece) {
-        byte[] msgBytes = new byte[Const.MSG_LEN_LEN + Const.MSG_TYPE_LEN + pieceIndex];
-        int index = 0;
-
-//        ByteBuffer byteBuffer = ByteBuffer.allocate(Const.MSG_LEN_LEN);
-//        byteBuffer.putInt(pieceIndex);
-//        for (byte val : byteBuffer.array())
-//            msgBytes[index++] = val;
-//
-//        int msgType = Const.MsgType.valueOf(Const.PIECE).ordinal();
-//        byteBuffer = ByteBuffer.allocate(Const.MSG_TYPE_LEN);
-//        byteBuffer.put((byte) msgType);
-//        for (byte val : byteBuffer.array())
-//            msgBytes[index++] = val;
-//
-//        BitSet temp = new BitSet(pieceIndex);
-//        for (int i = 0; i < pieceIndex; i++) {
-//            temp.set(i, true);
-//        }
-//
-//        byte[] t = temp.toByteArray();
-//
-//        for (byte val : t)
-//            msgBytes[index++] = val;
-
-        int totalLength = Const.MSG_TYPE_LEN;
-        totalLength += piece.length;
-
-        ByteBuffer buffer = ByteBuffer.allocate(totalLength + Const.MSG_LEN_LEN);
+        ByteBuffer buffer = ByteBuffer.allocate(Const.MSG_TYPE_LEN + Const.MSG_LEN_LEN + piece.length);
         int msgType = Const.MsgType.valueOf(Const.PIECE).ordinal();
-        buffer.putInt(totalLength);
+
+        System.out.println(piece.length);
+        buffer.putInt(piece.length);
         buffer.put((byte) msgType);
         buffer.put(piece);
-
 
         try {
             outStream.write(buffer.array());
@@ -474,10 +429,6 @@ public class MessageStream {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-        printByteArr(buffer.array());
-        String logMsg = "Peer" + " sending Piece message: " + Arrays.toString(msgBytes) + ".";
-        P2PLogger.getLogger().log(Level.INFO, logMsg);
     }
 
     public boolean readBitFieldMsg(PeerInfo neighborPeerInfo, int msgPayLoadLen) {
@@ -490,6 +441,7 @@ public class MessageStream {
             neighborPeerInfo.setPieceIndexes(new BitSet());
         }
 
+        System.out.println(Arrays.toString(msgPayLoadBytes));
         neighborPeerInfo.setPieceIndexes(BitSet.valueOf(msgPayLoadBytes));
         System.out.println(neighborPeerInfo.getPieceIndexes().toString());
         return true;
@@ -530,5 +482,23 @@ public class MessageStream {
         for (byte val : msgBytes)
             System.out.print(val + " ");
         System.out.println();
+    }
+
+    public static int byteArrayToInt(byte[] b)
+    {
+        return   b[3] & 0xFF |
+            (b[2] & 0xFF) << 8 |
+            (b[1] & 0xFF) << 16 |
+            (b[0] & 0xFF) << 24;
+    }
+
+    public static byte[] intToByteArray(int a)
+    {
+        return new byte[] {
+            (byte) ((a >> 24) & 0xFF),
+            (byte) ((a >> 16) & 0xFF),
+            (byte) ((a >> 8) & 0xFF),
+            (byte) (a & 0xFF)
+        };
     }
 }
