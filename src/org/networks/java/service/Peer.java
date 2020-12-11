@@ -86,12 +86,12 @@ public class Peer {
         if(!peerInfo.isFilePresent()) {
             establishConnection();
         }
-//        scheduleTasks();
+        scheduleTasks();
     }
 
     private void scheduleTasks() {
-        taskTimer.schedule(new VerifyCompletionTask(this), 10000, 5000);
-        taskTimer.schedule(new OptimisticUnchokingTask(this), 0, commonConfig.getOptimisticUnchokingInterval() * 10L);
+        taskTimer.schedule(new VerifyCompletionTask(this), 100, 50);
+//        taskTimer.schedule(new OptimisticUnchokingTask(this), 0, commonConfig.getOptimisticUnchokingInterval() * 10L);
         //TODO: add task for preferred neighbor
     }
 
@@ -271,7 +271,7 @@ public class Peer {
     }
 
     public void shutdown() throws IOException {
-        System.out.println(peerInfo.getPeerId() + "Shutting down!!___________________________________");
+        System.out.println(peerInfo.getPeerId() + " Shutting down!!___________________________________");
         neighborClientTable.forEach((key, value) -> value.shutdown());
         if (!peerInfo.isFilePresent()) {
             fileHandler.writeFileToDisk();
