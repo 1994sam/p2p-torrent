@@ -28,8 +28,10 @@ public class Server implements Runnable {
 					PeerInfo neighborPeerInfo = new PeerInfo(neighborPeerId, socket.getInetAddress().getHostName(), socket.getPort(), false);
 					if (neighborPeerInfo.isFilePresent())
 						neighborPeerInfo.getPieceIndexes().set(0, peer.totalPieces);
-					new Thread(new Client(peer, neighborPeerInfo, socket, msgStream)).start();
+					Client target = new Client(peer, neighborPeerInfo, socket, msgStream);
+					new Thread(target).start();
 					P2PLogger.getLogger().log(Level.INFO, "Peer " + peer.peerInfo.getPeerId() + " is connected from " + neighborPeerId + ".");
+					peer.neighborClientTable.put(neighborPeerId, target);
 				}
 			}
 		} catch (IOException e) {

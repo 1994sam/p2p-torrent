@@ -89,7 +89,7 @@ public class Client implements Runnable {
                 processNotInterestedMessage();
                 break;
             case 4:
-//                processHaveMessage();
+                processHaveMessage();
                 break;
             case 5:
                 processBitFieldMessage(messageLength);
@@ -132,15 +132,15 @@ public class Client implements Runnable {
             msgStream.sendInterestedMsg(0);
         }
 
-        for (int pieceIndex : peer.pieceTracker.get(neighborPeerInfo.getPeerId())) {
-            requestFileData(pieceIndex);
-        }
-        try {
-            peer.fileHandler.writeFileToDisk();
-            peer.peerInfo.setFilePresent(true);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+//        for (int pieceIndex : peer.pieceTracker.get(neighborPeerInfo.getPeerId())) {
+//            requestFileData(pieceIndex);
+//        }
+//        try {
+//            peer.fileHandler.writeFileToDisk();
+//            peer.peerInfo.setFilePresent(true);
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
     }
 
     private void processHaveMessage() throws IOException {
@@ -159,6 +159,15 @@ public class Client implements Runnable {
         P2PLogger.getLogger().log(Level.INFO, logMsg);
         unChokedAt = Instant.now();
         //TODO: send request for piece
+        requestPiece();
+    }
+
+    private void requestPiece() {
+        int pieceIndex = peer.getInterestedPieceIndex(neighborPeerInfo.getPeerId());
+        if (pieceIndex == -1) {
+            return;
+        }
+        requestFileData(pieceIndex);
     }
 
     private void processChokeMessage() {

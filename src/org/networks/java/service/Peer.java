@@ -5,6 +5,7 @@ import org.networks.java.helper.Const;
 import org.networks.java.helper.FileHandler;
 import org.networks.java.helper.PeerConfig;
 import org.networks.java.model.PeerInfo;
+import org.networks.java.tasks.OptimisticUnchokingTask;
 import org.networks.java.tasks.VerifyCompletionTask;
 
 import java.io.IOException;
@@ -88,8 +89,8 @@ public class Peer {
     }
 
     private void scheduleTasks() {
-        taskTimer.schedule(new VerifyCompletionTask(this), 10000, 5000);
-//        taskTimer.schedule(new OptimisticUnchokingTask(this), 0, commonConfig.getOptimisticUnchokingInterval() * 10L);
+//        taskTimer.schedule(new VerifyCompletionTask(this), 10000, 5000);
+        taskTimer.schedule(new OptimisticUnchokingTask(this), 0, commonConfig.getOptimisticUnchokingInterval());
         //TODO: add task for preferred neighbor
     }
 
