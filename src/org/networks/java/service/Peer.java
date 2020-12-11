@@ -14,6 +14,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 
 public class Peer {
 
@@ -25,6 +26,8 @@ public class Peer {
     public ConcurrentHashMap<String, Client> neighborClientTable;
 
     public ConcurrentHashMap<String, HashSet<Integer>> pieceTracker;
+
+    public List<PeerInfo> runningPeerInfoList;
     public Map<Integer, byte[]> pieces;
 
     public CommonConfig commonConfig;
@@ -38,6 +41,8 @@ public class Peer {
     private final Timer taskTimer;
 
     public Peer(final String peerId) throws IOException {
+        peerInfo = null;
+
         commonConfig = new CommonConfig();
         totalPieces = (int) Math.ceil((double) commonConfig.getFileSize() / commonConfig.getPieceSize());
 
@@ -78,15 +83,15 @@ public class Peer {
             e.printStackTrace();
         }
         updateNeighbors();
-        if (!peerInfo.isFilePresent()) {
+        if(!peerInfo.isFilePresent()) {
             establishConnection();
         }
-        scheduleTasks();
+//        scheduleTasks();
     }
 
     private void scheduleTasks() {
-        taskTimer.schedule(new VerifyCompletionTask(this), 1, 5);
-//        taskTimer.schedule(new OptimisticUnchokingTask(this), 0, 1);
+        taskTimer.schedule(new VerifyCompletionTask(this), 10000, 5000);
+        taskTimer.schedule(new OptimisticUnchokingTask(this), 0, commonConfig.getOptimisticUnchokingInterval() * 10L);
         //TODO: add task for preferred neighbor
     }
 
@@ -94,6 +99,8 @@ public class Peer {
         peerInfoTable = new ConcurrentHashMap<>();
         neighborPeerInfoTable = new ConcurrentHashMap<>();
         neighborClientTable = new ConcurrentHashMap<>();
+
+        runningPeerInfoList = new ArrayList<>();
 
         for (PeerInfo curPeerInfo : new PeerConfig().getPeerInfo()) {
             curPeerInfo.setPieceIndexes(new BitSet(totalPieces));
@@ -103,6 +110,8 @@ public class Peer {
                 this.peerInfo = curPeerInfo;
             else
                 peerInfoTable.put(curPeerInfo.getPeerId(), curPeerInfo);
+	        if(peerInfo == null)
+		        runningPeerInfoList.add(curPeerInfo);
         }
     }
 
@@ -115,8 +124,8 @@ public class Peer {
     }
 
     private void establishConnection() {
-        for (Map.Entry<String, PeerInfo> neighborPeerInfoEntry : neighborPeerInfoTable.entrySet()) {
-            Client client = new Client(this, neighborPeerInfoEntry.getValue());
+        for (PeerInfo runningPeerInfo: runningPeerInfoList) {
+            Client client = new Client(this, runningPeerInfo);
             new Thread(client).start();
         }
     }
@@ -135,7 +144,6 @@ public class Peer {
     public boolean isPieceRequired(Integer pieceIndex) {
         bitLock.readLock().lock();
         try {
-//            return peerInfo.getPieceIndexes().get(pieceIndex);
             return pieceTracker.get(peerInfo.getPeerId()).contains(pieceIndex);
         } finally {
             bitLock.readLock().unlock();
@@ -292,7 +300,6 @@ public class Peer {
                     pieceTracker.get(neighborPeerInfo.getPeerId()).add(i);
             }
         }
-//        System.out.println(pieceTracker.get(neighborPeerInfo.getPeerId()).toString());
     }
 
 }

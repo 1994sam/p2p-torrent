@@ -120,7 +120,6 @@ public class Client implements Runnable {
     private void processBitFieldMessage() {
         if (peer.peerInfo.getPieceIndexes().length() > 1)
             msgStream.sendBitFieldMsg(peer.peerInfo.getPieceIndexes());
-//        System.out.println(peer.peerInfo.getPieceIndexes().toString());
     }
 
     private void processBitFieldMessage(int messageLength) {
@@ -133,7 +132,6 @@ public class Client implements Runnable {
             msgStream.sendInterestedMsg(0);
         }
 
-//        System.out.println(peer.pieceTracker.get(neighborPeerInfo.getPeerId()).size());
         for(int pieceIndex: peer.pieceTracker.get(neighborPeerInfo.getPeerId())) {
             requestFileData(pieceIndex);
         }
