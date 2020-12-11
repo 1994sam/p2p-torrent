@@ -6,7 +6,6 @@ import org.networks.java.model.PeerInfo;
 
 import java.io.IOException;
 import java.net.Socket;
-import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.HashSet;
@@ -53,6 +52,7 @@ public class Client implements Runnable {
         } while (!connectionEstablished);
 
         peer.neighborClientTable.put(neighborPeerInfo.getPeerId(), this);
+        peer.peerInfoTable.put(neighborPeerInfo.getPeerId(), neighborPeerInfo);
         processBitFieldMessage();
 
         while (!isShutdown) {
