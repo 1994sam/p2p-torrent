@@ -79,15 +79,14 @@ public class MessageStream {
             return "";
 
         String msg = new String(msgBytes, StandardCharsets.UTF_8);
-        if (msg == null || msg.length() != Const.HANDSHAKE_MSG_LEN)
+        if (msg.length() != Const.HANDSHAKE_MSG_LEN)
             return "";
 
         int headerLen = Const.HANDSHAKE_HEADER.length();
         if (!Const.HANDSHAKE_HEADER.equals(msg.substring(0, headerLen)))
             return "";
 
-        String neighborPeerId = msg.substring(headerLen + Const.HANDSHAKE_ZERO_BITS_LEN);
-        return neighborPeerId;
+        return msg.substring(headerLen + Const.HANDSHAKE_ZERO_BITS_LEN);
     }
 
     public boolean sendHandshakeMsg(String peerId) {
@@ -196,7 +195,7 @@ public class MessageStream {
             outStream.write(msgBytes);
             outStream.flush();
         } catch (IOException e) {
-            e.printStackTrace();
+//            e.printStackTrace();
         }
 
         printByteArr(msgBytes);
@@ -236,7 +235,7 @@ public class MessageStream {
             outStream.write(msgBytes);
             outStream.flush();
         } catch (IOException e) {
-            e.printStackTrace();
+//            e.printStackTrace();
         }
 
         printByteArr(msgBytes);

@@ -18,6 +18,7 @@ public class VerifyCompletionTask extends TimerTask {
         if (peer.shutdown) {
             try {
                 peer.getTaskTimer().cancel();
+                peer.getTaskTimer().purge();
                 peer.shutdown();
             } catch (IOException e) {
                 e.printStackTrace();

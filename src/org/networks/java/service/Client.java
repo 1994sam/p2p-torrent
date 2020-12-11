@@ -6,9 +6,7 @@ import org.networks.java.model.PeerInfo;
 
 import java.io.IOException;
 import java.net.Socket;
-import java.time.Duration;
 import java.time.Instant;
-import java.util.HashSet;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.logging.Level;
@@ -28,7 +26,7 @@ public class Client implements Runnable {
     private final ReadWriteLock chokeTimeLock = new ReentrantReadWriteLock();
     private float downloadRate;
     private boolean isChoked;
-    private boolean isShutdown;
+    public boolean isShutdown;
     private Socket socket;
 
     public Client(final Peer peer, final PeerInfo neighborPeerInfo) {
@@ -108,6 +106,7 @@ public class Client implements Runnable {
                 if (!neighborPeerId.isEmpty() && neighborPeerInfo.getPeerId().equals(neighborPeerId)) {
                     connectionEstablished = true;
                     P2PLogger.getLogger().log(Level.INFO, "Peer " + peer.peerInfo.getPeerId() + " makes a connection to " + neighborPeerInfo.getPeerId() + ".");
+//                    peer.addNeighbor(this);
                 }
             }
         }
@@ -128,9 +127,9 @@ public class Client implements Runnable {
             msgStream.sendInterestedMsg(Const.MSG_LEN_0);
         }
 
-        for (int pieceIndex : peer.getPieceTracker().get(neighborPeerInfo.getPeerId())) {
-            requestFileData(pieceIndex);
-        }
+//        for (int pieceIndex : peer.getPieceTracker().get(neighborPeerInfo.getPeerId())) {
+//            requestFileData(pieceIndex);
+//        }
 //        try {
 //            peer.fileHandler.writeFileToDisk();
 //            peer.peerInfo.setFilePresent(true);
@@ -176,23 +175,18 @@ public class Client implements Runnable {
         P2PLogger.getLogger().log(Level.INFO, logMsg);
 
         chokeTimeLock.writeLock().lock();
-        downloadRate = (float) (downloadedPieces / Duration.between(unChokedAt, Instant.now()).getSeconds());
+        //downloadRate = (float) (downloadedPieces / Duration.between(unChokedAt, Instant.now()).getSeconds());
         chokeTimeLock.writeLock().lock();
         downloadedPieces = 0;
     }
 
     private void processRequestMessage() throws IOException {
-        int pieceIndex = msgStream.getInStream().readInt();
-        P2PLogger.getLogger().log(Level.INFO, "Peer " + neighborPeerInfo.getPeerId() + " requested piece index " + pieceIndex + " to Peer " + peer.peerInfo.getPeerId());
-        P2PLogger.getLogger().log(Level.INFO, "Peer " + peer.peerInfo.getPeerId() + " sending piece at index " + pieceIndex + " to Peer " + neighborPeerInfo.getPeerId());
-        msgStream.sendPieceMsg(pieceIndex, peer.getPiece(pieceIndex));
-
-//        if (!isChoked) {
-//            byte[] filePiece = peer.getFilePiece(pieceIndex);
-//            if (filePiece != null) {
-//                msgStream.sendPieceMsg(pieceIndex, filePiece);
-//            }
-//        }
+        if (!isChoked) {
+            int pieceIndex = msgStream.getInStream().readInt();
+            P2PLogger.getLogger().log(Level.INFO, "Peer " + neighborPeerInfo.getPeerId() + " requested piece index " + pieceIndex + " to Peer " + peer.peerInfo.getPeerId());
+            P2PLogger.getLogger().log(Level.INFO, "Peer " + peer.peerInfo.getPeerId() + " sending piece at index " + pieceIndex + " to Peer " + neighborPeerInfo.getPeerId());
+            msgStream.sendPieceMsg(pieceIndex, peer.getPiece(pieceIndex));
+        }
     }
 
     private void processPieceMessage(int messageLength) throws IOException {
@@ -204,6 +198,7 @@ public class Client implements Runnable {
             P2PLogger.getLogger().log(Level.INFO, "Peer " + peer.peerInfo.getPeerId() + " downloaded piece: "
                     + pieceIndex + " from Peer " + neighborPeerInfo.getPeerId());
         }
+        peer.downloadedPieces.add(pieceIndex);
         getNextFilePiece();
     }
 
@@ -222,12 +217,12 @@ public class Client implements Runnable {
     private void getNextFilePiece() {
         int interestedPieceIndex = peer.getInterestedPieceIndex(peer.peerInfo.getPeerId());
         if (interestedPieceIndex != -1) {
-            msgStream.sendRequestMsg(Const.PIECE_INDEX_PAYLOAD_LEN, interestedPieceIndex);
+            peer.getPieceTracker().get(neighborPeerInfo.getPeerId());
         }
     }
 
     public void sendHaveMessage(int pieceIndex) {
-        for(Client client: peer.getNeighborClientTable().values())
+        for (Client client : peer.getNeighborClientTable().values())
             client.msgStream.sendHaveMsg(pieceIndex);
     }
 
@@ -236,13 +231,17 @@ public class Client implements Runnable {
     }
 
     public void chokeNeighbor() {
-        isChoked = true;
-        msgStream.sendChokeMsg(1);
+        if(!isShutdown) {
+            isChoked = true;
+            msgStream.sendChokeMsg(0);
+        }
     }
 
     public void unchokeNeighbor() {
-        isChoked = false;
-        msgStream.sendUnChokeMsg(1);
+        if(!isShutdown) {
+            isChoked = false;
+            msgStream.sendUnChokeMsg(0);
+        }
     }
 
     public void shutdown() {
@@ -278,6 +277,8 @@ public class Client implements Runnable {
 
                 byte[] piece = msgStream.readPieceMsg(msgPayLoadLen);
                 peer.updatePiece(pieceIndex, piece);
+
+                peer.downloadedPieces.add(pieceIndex);
 
 //                sendHaveMessage(pieceIndex);
 
