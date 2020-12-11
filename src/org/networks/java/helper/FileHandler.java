@@ -87,30 +87,9 @@ public class FileHandler {
 	}
 
 	public void writeFileToDisk() throws IOException {
-
 		OutputStream os = new FileOutputStream(filePath);
-
 		for(byte[] piece: pieces.values())
 			os.write(piece);
-
-		/*File dir = new File(fileDirPath);
-
-		PrintWriter pw = new PrintWriter(dir.getAbsolutePath() + File.separator + commonConfig.getFileName());
-
-		String[] fileNames = dir.list();
-
-		if (fileNames != null) {
-			for (String fileName : fileNames) {
-				File f = new File(dir, fileName);
-				BufferedReader br = new BufferedReader(new FileReader(f));
-				String line = br.readLine();
-				while (line != null) {
-					pw.println(line);
-					line = br.readLine();
-				}
-				pw.flush();
-			}
-		}*/
 		System.out.println("Reading from all files in directory " + fileDirPath + " Completed");
 	}
 

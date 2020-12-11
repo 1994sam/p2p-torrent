@@ -24,7 +24,7 @@ public class Server implements Runnable {
 				Socket socket = serverSocket.accept();
 				MessageStream msgStream = new MessageStream(socket);
 				String neighborPeerId = msgStream.readHandshakeMsg(Const.HANDSHAKE_MSG_LEN);
-				if(!peer.neighborClientTable.containsKey(neighborPeerId)) {
+				if(!peer.getNeighborClientTable().containsKey(neighborPeerId)) {
 					PeerInfo neighborPeerInfo = new PeerInfo(neighborPeerId, socket.getInetAddress().getHostName(), socket.getPort(), false);
 					if (neighborPeerInfo.isFilePresent())
 						neighborPeerInfo.getPieceIndexes().set(0, peer.totalPieces);

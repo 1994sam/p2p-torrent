@@ -20,7 +20,7 @@ public class Client implements Runnable {
     private MessageStream msgStream;
 
     private Peer peer;
-    private PeerInfo neighborPeerInfo;
+    public PeerInfo neighborPeerInfo;
 
     private int downloadedPieces;
 
@@ -52,8 +52,6 @@ public class Client implements Runnable {
         } while (!connectionEstablished);
 
         peer.addNeighbor(this);
-//        peer.neighborClientTable.put(neighborPeerInfo.getPeerId(), this);
-        peer.peerInfoTable.put(neighborPeerInfo.getPeerId(), neighborPeerInfo);
         processBitFieldMessage();
 
         while (!isShutdown) {
@@ -109,7 +107,6 @@ public class Client implements Runnable {
                 String neighborPeerId = msgStream.readHandshakeMsg(Const.HANDSHAKE_MSG_LEN);
                 if (!neighborPeerId.isEmpty() && neighborPeerInfo.getPeerId().equals(neighborPeerId)) {
                     connectionEstablished = true;
-                    peer.neighborPeerInfoTable.put(neighborPeerId, neighborPeerInfo);
                     P2PLogger.getLogger().log(Level.INFO, "Peer " + peer.peerInfo.getPeerId() + " makes a connection to " + neighborPeerInfo.getPeerId() + ".");
                 }
             }
@@ -124,15 +121,14 @@ public class Client implements Runnable {
 
     private void processBitFieldMessage(int messageLength) {
         msgStream.readBitFieldMsg(neighborPeerInfo, messageLength); //reads the bit field message as well as sets the
-        peer.pieceTracker.computeIfAbsent(neighborPeerInfo.getPeerId(), k -> new HashSet<>());
-
         peer.updatePieceTracer(neighborPeerInfo);
-        if (peer.pieceTracker.get(neighborPeerInfo.getPeerId()).size() > 0) {
+
+        if (peer.getPieceTrackerSetSize(neighborPeerInfo) > 0) {
             P2PLogger.getLogger().log(Level.INFO, "Peer " + peer.peerInfo.getPeerId() + " sending interested message to Peer " + neighborPeerInfo.getPeerId());
             msgStream.sendInterestedMsg(0);
         }
 
-        for (int pieceIndex : peer.pieceTracker.get(neighborPeerInfo.getPeerId())) {
+        for (int pieceIndex : peer.getPieceTracker().get(neighborPeerInfo.getPeerId())) {
             requestFileData(pieceIndex);
         }
         try {
@@ -177,7 +173,7 @@ public class Client implements Runnable {
 //        int pieceIndex = msgStream.readRequestMsg(Const.PIECE_INDEX_PAYLOAD_LEN);
         P2PLogger.getLogger().log(Level.INFO, "Peer " + neighborPeerInfo.getPeerId() + " requested piece index " + pieceIndex + " to Peer " + peer.peerInfo.getPeerId());
         P2PLogger.getLogger().log(Level.INFO, "Peer " + peer.peerInfo.getPeerId() + " sending piece at index " + pieceIndex + " to Peer " + neighborPeerInfo.getPeerId());
-        msgStream.sendPieceMsg(pieceIndex, peer.pieces.get(pieceIndex));
+        msgStream.sendPieceMsg(pieceIndex, peer.getPiece(pieceIndex));
 
 //        P2PLogger.getLogger().log(Level.INFO,pieceIndex + " ---");
 //        P2PLogger.getLogger().log(Level.INFO, new String(peer.pieces.get(pieceIndex)));
@@ -276,7 +272,7 @@ public class Client implements Runnable {
 //                P2PLogger.getLogger().log(Level.INFO,pieceIndex + " ---");
 //                P2PLogger.getLogger().log(Level.INFO, new String(pieces));
 
-                peer.pieces.put(pieceIndex, pieces);
+                peer.updatePiece(pieceIndex, pieces);
                 peer.fileHandler.getPieces().put(pieceIndex, pieces);
 //                peer.fileHandler.addFilePiece(pieces, pieceIndex);
             } catch (IOException e) {
