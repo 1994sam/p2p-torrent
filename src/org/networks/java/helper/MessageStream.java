@@ -128,8 +128,6 @@ public class MessageStream {
             e.printStackTrace();
         }
 
-        String logMsg = "Peer" + neighborPeerInfo.getPeerId() + " receiving message with payload length: " + msgPayLoadLen + " and msgType: " + msgType + ".";
-        System.out.println(logMsg);
         switch (msgType) {
             case 0:
                 readChokeMsg(msgPayLoadLen);
@@ -418,7 +416,6 @@ public class MessageStream {
         ByteBuffer buffer = ByteBuffer.allocate(Const.MSG_TYPE_LEN + Const.MSG_LEN_LEN + piece.length);
         int msgType = Const.MsgType.valueOf(Const.PIECE).ordinal();
 
-        System.out.println(piece.length);
         buffer.putInt(piece.length);
         buffer.put((byte) msgType);
         buffer.put(piece);
@@ -441,9 +438,7 @@ public class MessageStream {
             neighborPeerInfo.setPieceIndexes(new BitSet());
         }
 
-        System.out.println(Arrays.toString(msgPayLoadBytes));
         neighborPeerInfo.setPieceIndexes(BitSet.valueOf(msgPayLoadBytes));
-        System.out.println(neighborPeerInfo.getPieceIndexes().toString());
         return true;
     }
 

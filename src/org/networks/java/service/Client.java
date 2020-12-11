@@ -120,7 +120,6 @@ public class Client implements Runnable {
     private void processBitFieldMessage() {
         if(peer.peerInfo.getPieceIndexes().length() > 1)
             msgStream.sendBitFieldMsg(peer.peerInfo.getPieceIndexes());
-//        System.out.println(peer.peerInfo.getPieceIndexes().toString());
     }
 
     private void processBitFieldMessage(int messageLength) {
@@ -133,7 +132,6 @@ public class Client implements Runnable {
             msgStream.sendInterestedMsg(0);
         }
 
-//        System.out.println(peer.pieceTracker.get(neighborPeerInfo.getPeerId()).size());
         for(int pieceIndex: peer.pieceTracker.get(neighborPeerInfo.getPeerId())) {
             requestFileData(pieceIndex);
         }
@@ -181,8 +179,8 @@ public class Client implements Runnable {
         P2PLogger.getLogger().log(Level.INFO, "Peer " + peer.peerInfo.getPeerId() + " sending piece at index " + pieceIndex + " to Peer " + neighborPeerInfo.getPeerId());
         msgStream.sendPieceMsg(pieceIndex, peer.pieces.get(pieceIndex));
 
-        P2PLogger.getLogger().log(Level.INFO,pieceIndex + " ---");
-        P2PLogger.getLogger().log(Level.INFO, new String(peer.pieces.get(pieceIndex)));
+//        P2PLogger.getLogger().log(Level.INFO,pieceIndex + " ---");
+//        P2PLogger.getLogger().log(Level.INFO, new String(peer.pieces.get(pieceIndex)));
 
 //        if (!isChoked) {
 //            byte[] filePiece = peer.getFilePiece(pieceIndex);

@@ -24,8 +24,9 @@ public class Peer {
     public ConcurrentHashMap<String, PeerInfo> peerInfoTable;
     public ConcurrentHashMap<String, PeerInfo> neighborPeerInfoTable;
     public ConcurrentHashMap<String, Client> neighborClientTable;
-
     public ConcurrentHashMap<String, HashSet<Integer>> pieceTracker;
+
+    public List<PeerInfo> runningPeerInfoList;
     public Map<Integer, byte[]> pieces;
 
     public CommonConfig commonConfig;
@@ -39,6 +40,8 @@ public class Peer {
     private final Timer taskTimer;
 
     public Peer(final String peerId) throws IOException {
+        peerInfo = null;
+
         commonConfig = new CommonConfig();
         totalPieces = (int) Math.ceil((double) commonConfig.getFileSize() / commonConfig.getPieceSize());
 
@@ -79,9 +82,7 @@ public class Peer {
             e.printStackTrace();
         }
         updateNeighbors();
-        if(!peerInfo.isFilePresent()) {
-            establishConnection();
-        }
+        establishConnection();
 //        scheduleTasks();
     }
 
@@ -96,14 +97,18 @@ public class Peer {
         neighborPeerInfoTable = new ConcurrentHashMap<>();
         neighborClientTable = new ConcurrentHashMap<>();
 
+        runningPeerInfoList = new ArrayList<>();
+
         for (PeerInfo curPeerInfo : new PeerConfig().getPeerInfo()) {
             curPeerInfo.setPieceIndexes(new BitSet(totalPieces));
             if (curPeerInfo.isFilePresent())
                 curPeerInfo.getPieceIndexes().set(0, totalPieces);
             if (curPeerInfo.getPeerId().equals(peerId))
-                this.peerInfo = curPeerInfo;
+                peerInfo = curPeerInfo;
             else
                 peerInfoTable.put(curPeerInfo.getPeerId(), curPeerInfo);
+	        if(peerInfo == null)
+		        runningPeerInfoList.add(curPeerInfo);
         }
     }
 
@@ -116,8 +121,8 @@ public class Peer {
     }
 
     private void establishConnection() {
-        for (Map.Entry<String, PeerInfo> neighborPeerInfoEntry : neighborPeerInfoTable.entrySet()) {
-            Client client = new Client(this, neighborPeerInfoEntry.getValue());
+        for (PeerInfo runningPeerInfo: runningPeerInfoList) {
+            Client client = new Client(this, runningPeerInfo);
             new Thread(client).start();
         }
     }
@@ -136,7 +141,6 @@ public class Peer {
     public boolean isPieceRequired(Integer pieceIndex) {
         bitLock.readLock().lock();
         try {
-//            return peerInfo.getPieceIndexes().get(pieceIndex);
             return pieceTracker.get(peerInfo.getPeerId()).contains(pieceIndex);
         } finally {
             bitLock.readLock().unlock();
