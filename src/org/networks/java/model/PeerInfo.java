@@ -9,6 +9,7 @@ public class PeerInfo {
 	private int portNum;
 	private boolean filePresent;
 	private BitSet pieceIndexes;
+	private int missingPieces;
 
 	public String getPeerId() {
 		return peerId;
@@ -50,6 +51,14 @@ public class PeerInfo {
 		this.filePresent = filePresent;
 	}
 
+	public int getMissingPieces() {
+		return missingPieces;
+	}
+
+	public void setMissingPieces(int missingPieces) {
+		this.missingPieces = missingPieces;
+	}
+
 	public PeerInfo() {
 		this(null);
 	}
@@ -64,6 +73,7 @@ public class PeerInfo {
 		this.portNum = port;
 		this.filePresent = filePresent;
 		this.pieceIndexes = new BitSet();
+		this.missingPieces = 0;
 	}
 
 	@Override
@@ -74,6 +84,7 @@ public class PeerInfo {
 			", portNumber=" + portNum +
 			", filePresent=" + filePresent +
 			", pieceIndexes=" + pieceIndexes.toString()+
+			", missingPieces=" + missingPieces +
 			'}';
 	}
 }

@@ -15,8 +15,7 @@ public class VerifyCompletionTask extends TimerTask {
 
     @Override
     public void run() {
-        if (true
-                && peer.peerInfo.isFilePresent()) {
+        if (peer.shutdown) {
             try {
                 peer.getTaskTimer().cancel();
                 peer.shutdown();
