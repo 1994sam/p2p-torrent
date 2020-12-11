@@ -108,10 +108,10 @@ public class Peer {
                 curPeerInfo.getPieceIndexes().set(0, totalPieces);
             if (curPeerInfo.getPeerId().equals(peerId))
                 this.peerInfo = curPeerInfo;
-            else
+	        if(peerInfo == null || curPeerInfo != peerInfo) {
+                runningPeerInfoList.add(curPeerInfo);
                 peerInfoTable.put(curPeerInfo.getPeerId(), curPeerInfo);
-	        if(peerInfo == null)
-		        runningPeerInfoList.add(curPeerInfo);
+            }
         }
     }
 
