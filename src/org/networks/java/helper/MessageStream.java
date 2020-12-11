@@ -386,40 +386,59 @@ public class MessageStream {
         P2PLogger.getLogger().log(Level.INFO, logMsg);
     }
 
-    public void sendRequestMsg(int msgPayLoadLen) {
+    public void sendRequestMsg(int msgPayLoadLen, int pieceIndex) {
         byte[] msgBytes = new byte[Const.MSG_LEN_LEN + Const.MSG_TYPE_LEN + msgPayLoadLen];
         int index = 0;
 
-        ByteBuffer byteBuffer = ByteBuffer.allocate(Const.MSG_LEN_LEN);
-        byteBuffer.putInt(msgPayLoadLen);
-        for (byte val : byteBuffer.array())
-            msgBytes[index++] = val;
+//        ByteBuffer byteBuffer = ByteBuffer.allocate(Const.MSG_LEN_LEN);
+//        byteBuffer.putInt(msgPayLoadLen);
+//        for (byte val : byteBuffer.array())
+//            msgBytes[index++] = val;
+//
+//        int msgType = Const.MsgType.valueOf(Const.REQUEST).ordinal();
+//        byteBuffer = ByteBuffer.allocate(Const.MSG_TYPE_LEN);
+//        byteBuffer.put((byte) msgType);
+//        for (byte val : byteBuffer.array())
+//            msgBytes[index++] = val;
+//
+//        BitSet temp = new BitSet(msgPayLoadLen);
+//        for (int i = 0; i < msgPayLoadLen; i++) {
+//            temp.set(i, true);
+//        }
+//
+//        byte[] t = temp.toByteArray();
+//
+//        for (byte val : t)
+//            msgBytes[index++] = val;
+//
+//        try {
+//            outStream.write(msgBytes);
+//            outStream.flush();
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
 
+
+        ByteBuffer bb = ByteBuffer.allocate(4);
+        bb.putInt(pieceIndex);
+
+        int totalLength = 1;
+        totalLength += bb.array().length;
+        ByteBuffer buffer = ByteBuffer.allocate(totalLength + 4);
         int msgType = Const.MsgType.valueOf(Const.REQUEST).ordinal();
-        byteBuffer = ByteBuffer.allocate(Const.MSG_TYPE_LEN);
-        byteBuffer.put((byte) msgType);
-        for (byte val : byteBuffer.array())
-            msgBytes[index++] = val;
-
-        BitSet temp = new BitSet(msgPayLoadLen);
-        for (int i = 0; i < msgPayLoadLen; i++) {
-            temp.set(i, true);
-        }
-
-        byte[] t = temp.toByteArray();
-
-        for (byte val : t)
-            msgBytes[index++] = val;
+        buffer.putInt(totalLength);
+        buffer.put((byte) msgType);
+        buffer.put(bb.array());
 
         try {
-            outStream.write(msgBytes);
+            outStream.write(buffer.array());
             outStream.flush();
         } catch (IOException e) {
             e.printStackTrace();
         }
 
-        printByteArr(msgBytes);
-        String logMsg = "Peer" + " sending Request message: " + Arrays.toString(msgBytes) + ".";
+        printByteArr(buffer.array());
+        String logMsg = "Peer" + " sending Request message: " + Arrays.toString(buffer.array()) + ".";
         P2PLogger.getLogger().log(Level.INFO, logMsg);
     }
 

@@ -14,7 +14,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
 
 public class Peer {
 
@@ -85,7 +84,7 @@ public class Peer {
 
     private void scheduleTasks() {
         taskTimer.schedule(new VerifyCompletionTask(this), 10000, 5000);
-        taskTimer.schedule(new OptimisticUnchokingTask(this), 0, commonConfig.getOptimisticUnchokingInterval() * 10L);
+        taskTimer.schedule(new OptimisticUnchokingTask(this), 0, commonConfig.getOptimisticUnchokingInterval() * 100L);
         //TODO: add task for preferred neighbor
     }
 
@@ -242,7 +241,7 @@ public class Peer {
 
     public void shutdown() throws IOException {
         neighborClientTable.forEach((key, value) -> value.shutdown());
-        if(!peerInfo.isFilePresent()) {
+        if (!peerInfo.isFilePresent()) {
             fileHandler.writeFileToDisk();
         }
         try {
@@ -258,10 +257,10 @@ public class Peer {
     }
 
     public void updatePieceTracer(PeerInfo neighborPeerInfo) {
-        for(int i = 0; i < totalPieces; i++) {
-            if(peerInfo.getPieceIndexes().get(i))
+        for (int i = 0; i < totalPieces; i++) {
+            if (peerInfo.getPieceIndexes().get(i))
                 pieceTracker.get(neighborPeerInfo.getPeerId()).remove(i);
-            else if(neighborPeerInfo.getPieceIndexes().get(i))
+            else if (neighborPeerInfo.getPieceIndexes().get(i))
                 pieceTracker.get(neighborPeerInfo.getPeerId()).add(i);
         }
         System.out.println(pieceTracker.get(neighborPeerInfo.getPeerId()).toString());

@@ -117,7 +117,7 @@ public class Client implements Runnable {
     }
 
     private void processBitFieldMessage() {
-        if(peer.peerInfo.getPieceIndexes().length() > 1)
+        if (peer.peerInfo.getPieceIndexes().length() > 1)
             msgStream.sendBitFieldMsg(peer.peerInfo.getPieceIndexes());
     }
 
@@ -126,7 +126,7 @@ public class Client implements Runnable {
         peer.pieceTracker.computeIfAbsent(neighborPeerInfo.getPeerId(), k -> new HashSet<>());
 
         peer.updatePieceTracer(neighborPeerInfo);
-        if(peer.pieceTracker.get(neighborPeerInfo.getPeerId()).size() > 0) {
+        if (peer.pieceTracker.get(neighborPeerInfo.getPeerId()).size() > 0) {
             P2PLogger.getLogger().log(Level.INFO, "Peer " + peer.peerInfo.getPeerId() + " sending interested message to Peer " + neighborPeerInfo.getPeerId());
             msgStream.sendInterestedMsg(0);
         }
@@ -147,7 +147,17 @@ public class Client implements Runnable {
         System.out.println(logMsg);
         P2PLogger.getLogger().log(Level.INFO, logMsg);
         unChokedAt = Instant.now();
+        requestPiece();
         //TODO: send request for piece
+    }
+
+    private void requestPiece() {
+        int pieceIndex = peer.getInterestedPieceIndex(neighborPeerInfo.getPeerId());
+        P2PLogger.getLogger().log(Level.INFO, "Sending request message to " + neighborPeerInfo.getPeerId());
+
+        if (pieceIndex != -1) {
+            msgStream.sendRequestMsg(0, pieceIndex);
+        }
     }
 
     private void processChokeMessage() {
@@ -156,7 +166,7 @@ public class Client implements Runnable {
         P2PLogger.getLogger().log(Level.INFO, logMsg);
 
         chokeTimeLock.writeLock().lock();
-        downloadRate = (float) (downloadedPieces / Duration.between(unChokedAt, Instant.now()).getSeconds());
+        //downloadRate = (float) (downloadedPieces / Duration.between(unChokedAt, Instant.now()).getSeconds());
         chokeTimeLock.writeLock().lock();
         downloadedPieces = 0;
     }
@@ -198,7 +208,7 @@ public class Client implements Runnable {
     private void getNextFilePiece() {
         int interestedPieceIndex = peer.getInterestedPieceIndex(peer.peerInfo.getPeerId());
         if (interestedPieceIndex != -1) {
-            msgStream.sendRequestMsg(interestedPieceIndex); //TODO: is this the correct way?
+            msgStream.sendRequestMsg(0, interestedPieceIndex); //TODO: is this the correct way?
         }
     }
 
@@ -217,7 +227,7 @@ public class Client implements Runnable {
 
     public void unchokeNeighbor() {
         isChoked = false;
-        msgStream.sendUnChokeMsg(1);
+        msgStream.sendUnChokeMsg(0);
     }
 
     public void shutdown() {
