@@ -4,12 +4,13 @@ public class Const {
 
 	public final static int BYTE_LEN = 8;
 	public final static int PEER_ID_LEN = 4;
+	public final static int MSG_LEN_0 = 0;
 	public final static int MSG_LEN_LEN = 4;
 	public final static int MSG_TYPE_LEN = 1;
+	public final static int PIECE_INDEX_PAYLOAD_LEN = 4;
 
 	public final static int HANDSHAKE_ZERO_BITS_LEN = 10;
 	public final static int HANDSHAKE_MSG_LEN = 32;
-	public final static int PIECE_INDEX_PAYLOAD_LEN = 4;
 	public final static String HANDSHAKE_HEADER = "P2PFILESHARINGPROJ";
 
 	public static final String COMMON_CFG_FILE_NAME = "Common.cfg";
