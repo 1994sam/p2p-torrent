@@ -1,10 +1,8 @@
 package org.networks.java.tasks;
 
-import org.networks.java.service.Client;
 import org.networks.java.service.Peer;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.TimerTask;
 
 public class VerifyCompletionTask extends TimerTask {
@@ -17,9 +15,8 @@ public class VerifyCompletionTask extends TimerTask {
 
     @Override
     public void run() {
-        List<Client> completedPeers = peer.getPeersFinished();
-        if (completedPeers.size() == peer.getNeighbors().size()
-                && peer.getPieceTracker().get(peer.peerInfo.getPeerId()).size() == peer.totalPieces) {
+        if (peer.areAllNeighborsCompleted()
+                && peer.getPieceTracker().get(peer.peerInfo.getPeerId()).size() == 0) {
             try {
                 peer.shutdown();
             } catch (IOException e) {

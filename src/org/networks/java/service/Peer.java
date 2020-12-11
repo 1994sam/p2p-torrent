@@ -78,15 +78,15 @@ public class Peer {
             e.printStackTrace();
         }
         updateNeighbors();
-        if(!peerInfo.isFilePresent()) {
+        if (!peerInfo.isFilePresent()) {
             establishConnection();
         }
-//        scheduleTasks();
+        scheduleTasks();
     }
 
     private void scheduleTasks() {
-        taskTimer.schedule(new VerifyCompletionTask(this), 10000, 5000);
-        taskTimer.schedule(new OptimisticUnchokingTask(this), 0, commonConfig.getOptimisticUnchokingInterval() * 10L);
+        taskTimer.schedule(new VerifyCompletionTask(this), 1, 5);
+//        taskTimer.schedule(new OptimisticUnchokingTask(this), 0, 1);
         //TODO: add task for preferred neighbor
     }
 
@@ -217,25 +217,45 @@ public class Peer {
         pieceTracker.put(peerId, new HashSet<>());
     }
 
-    public List<Client> getPeersFinished() {
+    public boolean areAllNeighborsCompleted() {
         bitLock.readLock().lock();
         try {
             List<Client> completedPeers = new ArrayList<>();
-            Iterator<Map.Entry<String, HashSet<Integer>>> pieceIterator = pieceTracker.entrySet().iterator();
-            while (pieceIterator.hasNext()) {
-                Map.Entry<String, HashSet<Integer>> peer = pieceIterator.next();
-                if (peer.getKey().equals(peerInfo.getPeerId()))
-                    continue;
-
-                if (peer.getValue().size() == totalPieces) {
-                    completedPeers.add(neighborClientTable.get(peer.getKey()));
+            for (PeerInfo value : peerInfoTable.values()) {
+                if (!value.isFilePresent()) {
+                    return false;
                 }
-                return completedPeers;
+            }
+//            Iterator<Map.Entry<String, HashSet<Integer>>> pieceIterator = pieceTracker.entrySet().iterator();
+//            while (pieceIterator.hasNext()) {
+//                Map.Entry<String, HashSet<Integer>> peer = pieceIterator.next();
+//                if (peer.getKey().equals(peerInfo.getPeerId()))
+//                    continue;
+//
+//                if (neighborClientTable.get(peer.getKey())) {
+//                    completedPeers.add(neighborClientTable.get(peer.getKey()));
+//                }
+//                return completedPeers;
+//            }
+        } finally {
+            bitLock.readLock().unlock();
+        }
+        return true;
+    }
+
+    public List<Client> getAllFinishedPeers() {
+        bitLock.readLock().lock();
+        List<Client> completedPeers = new ArrayList<>();
+        try {
+            for (Client value : neighborClientTable.values()) {
+                if (value.getPeer().peerInfo.isFilePresent()) {
+                    completedPeers.add(value);
+                }
             }
         } finally {
             bitLock.readLock().unlock();
         }
-        return new ArrayList<>();
+        return completedPeers;
     }
 
     public ConcurrentHashMap<String, HashSet<Integer>> getPieceTracker() {
@@ -243,12 +263,13 @@ public class Peer {
     }
 
     public void shutdown() throws IOException {
+        System.out.println(peerInfo.getPeerId() + "Shutting down!!___________________________________");
         neighborClientTable.forEach((key, value) -> value.shutdown());
         if (!peerInfo.isFilePresent()) {
             fileHandler.writeFileToDisk();
         }
         try {
-            Thread.sleep(5000);
+            Thread.sleep(50);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
@@ -260,19 +281,18 @@ public class Peer {
     }
 
     public void updatePieceTracer(PeerInfo neighborPeerInfo) {
-        for(int i = 0; i < totalPieces; i++) {
-            if(peerInfo.getPieceIndexes().get(i)) {
+        for (int i = 0; i < totalPieces; i++) {
+            if (peerInfo.getPieceIndexes().get(i)) {
                 pieceTracker.get(peerInfo.getPeerId()).remove(i);
-                if(neighborPeerInfo != null)
+                if (neighborPeerInfo != null)
                     pieceTracker.get(neighborPeerInfo.getPeerId()).remove(i);
-            }
-            else {
+            } else {
                 pieceTracker.get(peerInfo.getPeerId()).add(i);
-                if(neighborPeerInfo != null && neighborPeerInfo.getPieceIndexes().get(i))
+                if (neighborPeerInfo != null && neighborPeerInfo.getPieceIndexes().get(i))
                     pieceTracker.get(neighborPeerInfo.getPeerId()).add(i);
             }
         }
-        System.out.println(pieceTracker.get(neighborPeerInfo.getPeerId()).toString());
+//        System.out.println(pieceTracker.get(neighborPeerInfo.getPeerId()).toString());
     }
 
 }

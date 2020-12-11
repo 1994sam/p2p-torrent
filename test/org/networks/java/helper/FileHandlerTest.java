@@ -14,7 +14,7 @@ class FileHandlerTest {
         byte[] arr = new byte[100];
         rd.nextBytes(arr);
         FileHandler handler = new FileHandler("E:\\Courses\\Semester 3\\CN\\Project\\p2p-torrent\\peer1002", true, new CommonConfig(), "1002");
-        handler.addFilePiece(arr, 0, "1002");
+//        handler.addFilePiece(arr, 0, "1002");
     }
 
     @Test
@@ -33,7 +33,7 @@ class FileHandlerTest {
         for (int i = 0; i < 5; i++) {
             arr = new byte[100];
             rd.nextBytes(arr);
-            handler.addFilePiece(arr, i, "1002");
+//            handler.addFilePiece(arr, i, "1002");
             byte[] filePiece = handler.getFilePiece(i);
             Assertions.assertArrayEquals(arr, filePiece);
         }
