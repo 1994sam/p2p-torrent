@@ -1,15 +1,11 @@
 package org.networks.java.model;
 
-import java.util.BitSet;
-
 public class PeerInfo {
 
 	private String peerId;
 	private String hostName;
-	private int portNum;
-	private boolean filePresent;
-	private BitSet pieceIndexes;
-	private int missingPieces;
+	private Integer portNum;
+	private Boolean filePresent;
 
 	public String getPeerId() {
 		return peerId;
@@ -27,36 +23,20 @@ public class PeerInfo {
 		this.hostName = hostName;
 	}
 
-	public int getPortNum() {
+	public Integer getPortNum() {
 		return portNum;
 	}
 
-	public void setPortNum(int port) {
-		this.portNum = port;
+	public void setPortNum(Integer portNum) {
+		this.portNum = portNum;
 	}
 
-	public BitSet getPieceIndexes() {
-		return pieceIndexes;
-	}
-
-	public void setPieceIndexes(BitSet pieceIndexes) {
-		this.pieceIndexes = pieceIndexes;
-	}
-
-	public boolean isFilePresent() {
+	public Boolean getFilePresent() {
 		return filePresent;
 	}
 
-	public void setFilePresent(boolean filePresent) {
+	public void setFilePresent(Boolean filePresent) {
 		this.filePresent = filePresent;
-	}
-
-	public int getMissingPieces() {
-		return missingPieces;
-	}
-
-	public void setMissingPieces(int missingPieces) {
-		this.missingPieces = missingPieces;
 	}
 
 	public PeerInfo() {
@@ -67,13 +47,11 @@ public class PeerInfo {
 		this(peerId, null, -1, false);
 	}
 
-	public PeerInfo(String peerId, String hostName, int port, boolean filePresent) {
+	public PeerInfo(String peerId, String hostName, Integer port, Boolean filePresent) {
 		this.peerId = peerId;
 		this.hostName = hostName;
 		this.portNum = port;
 		this.filePresent = filePresent;
-		this.pieceIndexes = new BitSet();
-		this.missingPieces = 0;
 	}
 
 	@Override
@@ -83,8 +61,6 @@ public class PeerInfo {
 			", hostName='" + hostName + '\'' +
 			", portNumber=" + portNum +
 			", filePresent=" + filePresent +
-			", pieceIndexes=" + pieceIndexes.toString()+
-			", missingPieces=" + missingPieces +
 			'}';
 	}
 }

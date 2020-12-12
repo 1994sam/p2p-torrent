@@ -1,270 +1,310 @@
 package org.networks.java.service;
 
-import org.networks.java.helper.Const;
 import org.networks.java.helper.MessageStream;
+import org.networks.java.model.HandshakeMessage;
+import org.networks.java.model.Message;
+import org.networks.java.model.MessageType;
 import org.networks.java.model.PeerInfo;
 
+import java.io.EOFException;
 import java.io.IOException;
 import java.net.Socket;
+import java.nio.ByteBuffer;
+import java.time.Duration;
 import java.time.Instant;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.logging.Level;
 
 public class Client implements Runnable {
 
-    private boolean connectionEstablished;
+	private final ReadWriteLock lastDownloadRateLock = new ReentrantReadWriteLock();
 
-    private MessageStream msgStream;
+	private boolean connectionEstablished;
+	private boolean isChoked;
+	private boolean shutdown;
+	private int downloadedPiecesSinceUnchoked;
+	private float lastDownloadRate;
 
-    private Peer peer;
-    public PeerInfo neighborPeerInfo;
+	private Instant lastUnchokedByNeighborAt;
+	private MessageStream msgStream;
+	private Peer peer;
+	private PeerInfo neighborPeerInfo;
+	private Socket socket;
 
-    private int downloadedPieces;
+	private LinkedBlockingQueue<Message> msgStreamQueue;
 
-    private Instant unChokedAt;
-    private final ReadWriteLock chokeTimeLock = new ReentrantReadWriteLock();
-    private float downloadRate;
-    private boolean isChoked;
-    public boolean isShutdown;
-    private Socket socket;
+	public PeerInfo getNeighborPeerInfo() {
+		return neighborPeerInfo;
+	}
 
-    public Peer getPeer() {
-        return peer;
-    }
+	public void setNeighborPeerInfo(PeerInfo neighborPeerInfo) {
+		this.neighborPeerInfo = neighborPeerInfo;
+	}
 
-    public Client(final Peer peer, final PeerInfo neighborPeerInfo) {
-        socket = null;
-        try {
-            socket = new Socket(neighborPeerInfo.getHostName(), neighborPeerInfo.getPortNum());
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        initializeClient(peer, neighborPeerInfo, socket, new MessageStream(socket), false);
-    }
+	public Client(final Peer peer, final PeerInfo neighborPeerInfo) {
+		socket = null;
+		try {
+			socket = new Socket(neighborPeerInfo.getHostName(), neighborPeerInfo.getPortNum());
+		} catch (IOException e) {
+		}
+		initializeClient(peer, neighborPeerInfo, socket, new MessageStream(socket), false);
+	}
 
-    public Client(final Peer peer, final PeerInfo neighborPeerInfo, final Socket socket, final MessageStream msgStream) {
-        initializeClient(peer, neighborPeerInfo, socket, msgStream, true);
-    }
+	public Client(Peer peer, PeerInfo neighborPeerInfo, Socket socket, MessageStream msgStream) {
+		initializeClient(peer, neighborPeerInfo, socket, msgStream, true);
+	}
 
-    @Override
-    public void run() {
-        do {
-            processHandShake();
-        } while (!connectionEstablished);
+	private void initializeClient(Peer peer, PeerInfo neighborPeerInfo, Socket socket, MessageStream msgStream, boolean connectionEstablished) {
+		this.connectionEstablished = connectionEstablished;
+		this.isChoked = true;
+		this.shutdown = false;
+		this.downloadedPiecesSinceUnchoked = 0;
+		this.lastDownloadRate = 0;
 
-        peer.addNeighbor(this);
-        processBitFieldMessage();
+		this.msgStream = msgStream;
+		this.peer = peer;
+		this.neighborPeerInfo = neighborPeerInfo;
+		this.socket = socket;
 
-//        String logMsg = "";
-//        for(PeerInfo neighborPeerInfo: peer.getPeerInfoTable().values())
-//            logMsg += "Peer " + neighborPeerInfo.getPeerId() + " missing pieces " + neighborPeerInfo.getMissingPieces() + "\n";
-//        System.out.println(logMsg);
+		this.msgStreamQueue = new LinkedBlockingQueue<>();
+	}
 
-        while (!isShutdown) {
-            try {
-                processMessage();
-            } catch (IOException e) {
-//                e.printStackTrace();
-            }
-        }
-    }
+	@Override
+	public void run() {
+		try {
+			do {
+				processHandShake();
+			} while (!connectionEstablished);
+			sendBitFieldMsg();
 
-    private void initializeClient(final Peer peer, final PeerInfo neighborPeerInfo, final Socket socket, final MessageStream msgStream, final boolean connectionEstablished) {
-        this.peer = peer;
-        this.neighborPeerInfo = neighborPeerInfo;
-        this.neighborPeerInfo.setMissingPieces(peer.totalPieces);
-        this.msgStream = msgStream;
-        this.connectionEstablished = connectionEstablished;
-    }
+			new Thread(() -> {
+				try {
+					pushMsgToQueue();
+				} catch (InterruptedException | IOException ex) {
+				}
+			}).start();
 
-    private void processMessage() throws IOException {
-        int messageLength = msgStream.getInStream().readInt();
-        int messageType = Byte.toUnsignedInt(msgStream.getInStream().readByte());
-        switch (messageType) {
-            case 0:
-                processChokeMessage();
-                break;
-            case 1:
-                processUnChokeMessage();
-                break;
-            case 2:
-                processInterestedMessage();
-                break;
-            case 3:
-                processNotInterestedMessage();
-                break;
-            case 4:
-                processHaveMessage();
-                break;
-            case 5:
-                processBitFieldMessage(messageLength);
-                break;
-            case 6:
-                processRequestMessage();
-                break;
-            case 7:
-                processPieceMessage(messageLength);
-                break;
-        }
-    }
+			while (!shutdown)
+				processMessage();
 
-    private void processHandShake() {
-        if (msgStream.sendHandshakeMsg(peer.peerInfo.getPeerId())) {
-            while (!connectionEstablished) {
-                String neighborPeerId = msgStream.readHandshakeMsg(Const.HANDSHAKE_MSG_LEN);
-                if (!neighborPeerId.isEmpty() && neighborPeerInfo.getPeerId().equals(neighborPeerId)) {
-                    connectionEstablished = true;
-                    P2PLogger.getLogger().log(Level.INFO, "Peer " + peer.peerInfo.getPeerId() + " makes a connection to " + neighborPeerInfo.getPeerId() + ".");
-                }
-            }
-        }
+		} catch (EOFException e) {
+			msgStreamQueue.add(new Message(null, null));
+			System.out.println("Terminating connection with Peer " + neighborPeerInfo.getPeerId());
+		} catch (Exception ex) {
+		}
+	}
 
-    }
+	private void processMessage() throws IOException {
+		int messageLength = msgStream.read4ByteIntData();
+		MessageType messageType = MessageType.getMsgType(msgStream.read1ByteMsgType());
 
-    private void processBitFieldMessage() {
-        if (peer.peerInfo.getPieceIndexes().length() > 0)
-            msgStream.sendBitFieldMsg(peer.peerInfo.getPieceIndexes());
-    }
+		switch (messageType) {
+			case CHOKE:
+				readChokeMsg();
+				break;
+			case UNCHOKE:
+				readUnchokeMsg();
+				break;
+			case INTERESTED:
+				readInterestedMsg();
+				break;
+			case NOT_INTERESTED:
+				readNotInterested();
+				break;
+			case HAVE:
+				readHaveMsg();
+				break;
+			case BITFIELD:
+				readBitFieldMsg(--messageLength);
+				break;
+			case REQUEST:
+				readRequestMsg();
+				break;
+			case PIECE:
+				readPieceMsg(--messageLength);
+				break;
+		}
+	}
 
-    private void processBitFieldMessage(int messageLength) {
-        msgStream.readBitFieldMsg(neighborPeerInfo, messageLength); //reads the bit field message as well as sets the
-        peer.updatePieceTracer(neighborPeerInfo);
+	private void processHandShake() throws IOException {
+		sendHandshakeMsg();
+		while (!connectionEstablished)
+			receiveHandshakeMsg();
 
-        if (neighborPeerInfo.getPieceIndexes().length() > 0) {
-//            P2PLogger.getLogger().log(Level.INFO, "Peer " + peer.peerInfo.getPeerId() + " sending INTERESTED message to Peer " + neighborPeerInfo.getPeerId());
-            msgStream.sendInterestedMsg(Const.MSG_LEN_0);
-        }
-    }
+		peer.addClient(this);
+	}
 
-    private void processHaveMessage() throws IOException {
-        int pieceIndex = msgStream.getInStream().readInt();
-        peer.updateNeighborPieceInfo(neighborPeerInfo.getPeerId(), pieceIndex);
-        P2PLogger.getLogger().log(Level.INFO, "Peer " + peer.peerInfo.getPeerId() + " received a 'have' message from " + neighborPeerInfo.getPeerId() + " for the piece " + pieceIndex + ".");
+	private void pushMsgToQueue() throws InterruptedException, IOException {
+		while (true) {
+			Message msg = msgStreamQueue.take();
+			if (msg.getMsgType() == null)
+				return;
+			sendMsg(msg);
+		}
+	}
 
-        if (peer.isPieceRequired(pieceIndex)) {
-//            P2PLogger.getLogger().log(Level.INFO, "Peer " + peer.peerInfo.getPeerId() + " sending INTERESTED message to Peer " + neighborPeerInfo.getPeerId());
-            msgStream.sendInterestedMsg(Const.MSG_LEN_0);
-        } else {
-//            P2PLogger.getLogger().log(Level.INFO, "Peer " + peer.peerInfo.getPeerId() + " sending NOT INTERESTED message to Peer " + neighborPeerInfo.getPeerId());
-            msgStream.sendNotInterestedMsg(Const.MSG_LEN_0);
-        }
-    }
+	private void readChokeMsg() throws IOException {
+		P2PLogger.getLogger().log(Level.INFO, "Peer " + peer.getPeerInfo().getPeerId() + " is choked by Peer " + neighborPeerInfo.getPeerId());
 
-    private void processInterestedMessage() {
-        P2PLogger.getLogger().log(Level.INFO, "Peer " + peer.peerInfo.getPeerId() + " received the 'interested' message from " + neighborPeerInfo.getPeerId() + ".");
-        peer.addInterestedPeer(neighborPeerInfo.getPeerId());
-    }
+		// calculate the download rate for the last unchoked interval.
+		// reset the downloaded pieces counter.
+		lastDownloadRateLock.writeLock().lock();
+		lastDownloadRate = (float) downloadedPiecesSinceUnchoked / Duration.between(Instant.now(), lastUnchokedByNeighborAt).getSeconds();
+		downloadedPiecesSinceUnchoked = 0;
+		lastDownloadRateLock.writeLock().unlock();
+	}
 
-    private void processNotInterestedMessage() {
-        P2PLogger.getLogger().log(Level.INFO, "Peer " + peer.peerInfo.getPeerId() + " received the 'not interested' message from " + neighborPeerInfo.getPeerId() + ".");
-        peer.removeAsInterestedPeer(neighborPeerInfo.getPeerId());
-    }
+	private void readUnchokeMsg() throws IOException {
+		P2PLogger.getLogger().log(Level.INFO, "Peer " + peer.getPeerInfo().getPeerId() + " is unchoked by Peer " + neighborPeerInfo.getPeerId());
 
-    private void processUnChokeMessage() {
-        P2PLogger.getLogger().log(Level.INFO, "Peer" + peer.peerInfo.getPeerId() + " is unchoked by " + neighborPeerInfo.getPeerId() + ".");
-        unChokedAt = Instant.now();
-        //TODO: send request for piece
-        requestPiece();
-    }
+		lastUnchokedByNeighborAt = Instant.now();
+		requestPiece();
+	}
 
-    private void processChokeMessage() {
-        P2PLogger.getLogger().log(Level.INFO, "Peer" + peer.peerInfo.getPeerId() + " is choked by " + neighborPeerInfo.getPeerId() + ".");
-        chokeTimeLock.writeLock().lock();
-        //downloadRate = (float) (downloadedPieces / Duration.between(unChokedAt, Instant.now()).getSeconds());
-        chokeTimeLock.writeLock().lock();
-        downloadedPieces = 0;
-    }
+	private void readInterestedMsg() {
+		P2PLogger.getLogger().log(Level.INFO, "Peer " + peer.getPeerInfo().getPeerId() + " received the `INTERESTED` message from Peer " + neighborPeerInfo.getPeerId());
+		peer.addPeerInterest(neighbor.peerID, true);
+	}
 
-    private void processRequestMessage() throws IOException {
-        if (!isChoked) {
-            int pieceIndex = msgStream.getInStream().readInt();
-//            P2PLogger.getLogger().log(Level.INFO, "Peer " + neighborPeerInfo.getPeerId() + " requested piece index " + pieceIndex + " to Peer " + peer.peerInfo.getPeerId());
-//            P2PLogger.getLogger().log(Level.INFO, "Peer " + peer.peerInfo.getPeerId() + " sending piece at index " + pieceIndex + " to Peer " + neighborPeerInfo.getPeerId());
-            msgStream.sendPieceMsg(pieceIndex, peer.getPiece(pieceIndex));
-        }
-    }
+	private void readNotInterested() {
+		P2PLogger.getLogger().log(Level.INFO, "Peer " + peer.getPeerInfo().getPeerId() + " received the `NOT INTERESTED` message from Peer " + neighborPeerInfo.getPeerId());
+		peer.addPeerInterest(neighborPeerInfo.getPeerId(), false);
+	}
 
-    private void processPieceMessage(int msgPayLoadLen) {
-        try {
-            if(msgPayLoadLen == -1) {
-                msgPayLoadLen = msgStream.read4ByteIntData();
-                int messageType = Byte.toUnsignedInt(msgStream.getInStream().readByte());
-            }
-            int pieceIndex = msgStream.read4ByteIntData();
-            byte[] piece = msgStream.readPieceMsg(msgPayLoadLen);
+	private void readHaveMsg() throws IOException {
+		P2PLogger.getLogger().log(Level.INFO, "Peer " + peer.getPeerInfo().getPeerId() + " received the `HAVE` message from Peer " + neighborPeerInfo.getPeerId());
+		Integer pieceIndex = msgStream.read4ByteIntData();
+		peer.updateNeighborPieceIndex(neighborPeerInfo.getPeerId(), pieceIndex);
+		if (!peer.hasPiece(pieceIndex)) {
+			Message msg = new Message(MessageType.INTERESTED, null);
+			msgStreamQueue.add(msg);
+		}
+	}
 
-            peer.updatePiece(pieceIndex, piece);
-            P2PLogger.getLogger().log(Level.INFO, "Peer " + peer.peerInfo.getPeerId() + " has downloaded the piece " + pieceIndex + " from " + neighborPeerInfo.getPeerId() + ". Now the number of pieces it has is " + peer.peerInfo.getPieceIndexes().cardinality() + ".");
+	private void readBitFieldMsg(int messageLength) throws IOException {
+		byte[] bitFieldByte = new byte[messageLength];
+		msgStream.getInStream().readFully(bitFieldByte);
+		peer.setNeighborBitField(neighborPeerInfo.getPeerId(), bitFieldByte);
+		if (peer.getPieceRequestIndex(neighborPeerInfo.getPeerId()) != -1) {
+			Message msg = new Message(MessageType.INTERESTED, null);
+			msgStreamQueue.add(new Message(MessageType.INTERESTED, null));
+		}
+	}
 
-            downloadedPieces++;
-            peer.downloadedPieces.add(pieceIndex);
+	private void readRequestMsg() throws IOException {
+		Integer pieceIndex = msgStream.read4ByteIntData();
+		if (isChoked)
+			return;
+		byte[] piece = peer.getPiece(pieceIndex);
+		if (piece != null) {
+			ByteBuffer byteBuffer = ByteBuffer.allocate(4 + piece.length);
+			byteBuffer.putInt(pieceIndex);
+			byteBuffer.put(piece);
+			Message msg = new Message(MessageType.PIECE, byteBuffer.array());
+			msgStreamQueue.add(msg);
+		}
+	}
 
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
+	private void readPieceMsg(int messageLength) throws IOException {
+		Integer pieceIndex = msgStream.read4ByteIntData();
+		byte[] piece = new byte[messageLength - 4];
+		msgStream.getInStream().readFully(piece);
+		boolean pieceAdded = peer.addPiece(pieceIndex, piece);
+		downloadedPiecesSinceUnchoked++;
+		if (pieceAdded) {
+			P2PLogger.getLogger().log(Level.INFO, "Peer " + peer.getPeerInfo().getPeerId() + " has downloaded the piece " + pieceIndex + " from Peer " + neighborPeerInfo.getPeerId());
+		}
+		requestPiece();
+	}
 
-    private void requestPiece() {
-        int pieceIndex = peer.getInterestedPieceIndex(neighborPeerInfo.getPeerId());
-        if (pieceIndex == -1) {
-            return;
-        }
-        requestFileData(pieceIndex);
-    }
+	private void receiveHandshakeMsg() throws IOException {
+		String receivedMsg = msgStream.getInStream().readUTF();
+		String neighborPeerId = receivedMsg.substring(28, 32);
+		String sentMsg = new HandshakeMessage(neighborPeerId).toString();
 
-    public void requestFileData(int pieceIndex) {
-        if (peer.isPieceRequired(pieceIndex)) {
-//            P2PLogger.getLogger().log(Level.INFO, "Peer " + peer.peerInfo.getPeerId() + " requesting piece index " + pieceIndex + " to Peer " + neighborPeerInfo.getPeerId());
-            msgStream.sendRequestMsg(Const.PIECE_INDEX_PAYLOAD_LEN, pieceIndex);
-            processPieceMessage(-1);
-            sendHaveMessage(pieceIndex);
-            getNextFilePiece();
-        }
-    }
+		if (sentMsg.equalsIgnoreCase(receivedMsg)) {
+			connectionEstablished = true;
+			P2PLogger.getLogger().log(Level.INFO, "Peer " + peer.getPeerInfo().getPeerId() + " is connected from Peer " + neighborPeerInfo.getPeerId() + ".");
+		}
+	}
 
-    private void getNextFilePiece() {
-        int interestedPieceIndex = peer.getInterestedPieceIndex(peer.peerInfo.getPeerId());
-        if (interestedPieceIndex != -1) {
-            peer.getPieceTracker().get(neighborPeerInfo.getPeerId());
-        }
-    }
+	private void sendMsg(Message msg) throws IOException {
+		int msgLen = msg.getMsgBody() != null ? msg.getMsgBody().length + 1 : 1;
 
-    public void sendHaveMessage(int pieceIndex) {
-        for (Client client : peer.getNeighborClientTable().values())
-            client.msgStream.sendHaveMsg(Const.PIECE_INDEX_PAYLOAD_LEN, pieceIndex);
-    }
+		ByteBuffer buffer = ByteBuffer.allocate(msgLen + 4);
+		buffer.putInt(msgLen);
+		buffer.put((byte) msg.getMsgType().ordinal());
 
-    public float getDownloadRate() {
-        return downloadRate;
-    }
+		if (msg.getMsgBody() != null)
+			buffer.put(msg.getMsgBody());
+		msgStream.getOutStream().write(buffer.array());
+	}
 
-    public void chokeNeighbor() {
-        if(!isShutdown) {
-            isChoked = true;
-            msgStream.sendChokeMsg(0);
-        }
-    }
+	private void sendHandshakeMsg() throws IOException {
+		Message msg = new HandshakeMessage(peer.getPeerInfo().getPeerId()).toString();
+		msgStream.getOutStream().writeUTF(msg.toString());
+		P2PLogger.getLogger().log(Level.INFO, "Peer " + peer.getPeerInfo().getPeerId() + " makes a connection to " + neighborPeerInfo.getPeerId() + ".");
+	}
 
-    public void unchokeNeighbor() {
-        if(!isShutdown) {
-            isChoked = false;
-            msgStream.sendUnChokeMsg(0);
-        }
-    }
+	public void sendBitFieldMsg() throws IOException {
+		if (peer.hasOnePiece()) {
+			Message msg = new Message(MessageType.BITFIELD, peer.getBitField());
+			sendMsg(msg);
+		}
+	}
 
-    public void shutdown() {
-        try {
-            isShutdown = true;
-            msgStream.getOutStream().flush();
-            if (socket != null) {
-                msgStream.getInStream().close();
-                msgStream.getOutStream().close();
-                socket.close();
-            }
-        } catch (IOException e) {
-            // Do nothing
-        }
-    }
+	public void sendHaveMsg(int pieceIndex) {
+		ByteBuffer byteBuffer = ByteBuffer.allocate(4);
+		byteBuffer.putInt(pieceIndex);
+		Message msg = new Message(MessageType.HAVE, byteBuffer.array());
+		msgStreamQueue.add(msg);
+	}
+
+	public void chokeNeighbor() {
+		isChoked = true;
+		Message msg = new Message(MessageType.CHOKE, null);
+		msgStreamQueue.add(msg);
+	}
+
+	public void unchokeNeighbor() {
+		isChoked = false;
+		Message msg = new Message(MessageType.UNCHOKE, null);
+		msgStreamQueue.add(msg);
+	}
+
+	private void requestPiece() {
+		int pieceIndex = peer.getPieceRequestIndex(neighborPeerInfo.getPeerId());
+		if (pieceIndex == -1)
+			return;
+		ByteBuffer byteBuffer = ByteBuffer.allocate(4);
+		byteBuffer.putInt(pieceIndex);
+		Message msg = new Message(MessageType.REQUEST, byteBuffer.array());
+		msgStreamQueue.add(msg);
+	}
+
+	public float getDownloadRate() {
+		lastDownloadRateLock.readLock().lock();
+		try {
+			return lastDownloadRate;
+		} finally {
+			lastDownloadRateLock.readLock().unlock();
+		}
+	}
+
+	public void shutdown() {
+		try {
+			shutdown = true;
+			while (!msgStreamQueue.isEmpty()) ;
+			msgStream.getOutStream().flush();
+			if (socket != null) {
+				msgStream.getInStream().close();
+				msgStream.getOutStream().close();
+				socket.close();
+			}
+		} catch (IOException e) {
+		}
+	}
 
 }
