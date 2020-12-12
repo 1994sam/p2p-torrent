@@ -6,14 +6,14 @@ import org.junit.jupiter.api.Test;
 import java.io.IOException;
 import java.util.Random;
 
-class FileHandlerTest {
+class FileDownloadManagerTest {
 
     @Test
     void addFilePiece() throws IOException {
         Random rd = new Random();
         byte[] arr = new byte[100];
         rd.nextBytes(arr);
-        FileHandler handler = new FileHandler("E:\\Courses\\Semester 3\\CN\\Project\\p2p-torrent\\peer1002", true, new CommonConfig(), "1002");
+        FileDownloadManager handler = new FileDownloadManager("E:\\Courses\\Semester 3\\CN\\Project\\p2p-torrent\\peer1002", true, new CommonConfig(), "1002");
 //        handler.addFilePiece(arr, 0, "1002");
     }
 
@@ -29,7 +29,7 @@ class FileHandlerTest {
 
         CommonConfig commonConfig = new CommonConfig("E:\\Courses\\Semester 3\\CN\\Project\\p2p-torrent\\Common.cfg");
 
-        FileHandler handler = new FileHandler("E:\\Courses\\Semester 3\\CN\\Project\\p2p-torrent\\peer1002", true, commonConfig, "1002");
+        FileDownloadManager handler = new FileDownloadManager("E:\\Courses\\Semester 3\\CN\\Project\\p2p-torrent\\peer1002", true, commonConfig, "1002");
         for (int i = 0; i < 5; i++) {
             arr = new byte[100];
             rd.nextBytes(arr);

@@ -1,6 +1,6 @@
 package org.networks.java.service;
 
-import org.networks.java.helper.Const;
+import org.networks.java.helper.Constants;
 import org.networks.java.helper.MessageStream;
 import org.networks.java.model.PeerInfo;
 
@@ -19,18 +19,18 @@ public class Server implements Runnable {
 
 	@Override
 	public void run() {
-		try (ServerSocket serverSocket = new ServerSocket(peer.peerInfo.getPortNum())) {
+		try (ServerSocket serverSocket = new ServerSocket(peer.peerInfo.getPortNumber())) {
 			while(true) {
 				Socket socket = serverSocket.accept();
 				MessageStream msgStream = new MessageStream(socket);
-				String neighborPeerId = msgStream.readHandshakeMsg(Const.HANDSHAKE_MSG_LEN);
+				String neighborPeerId = msgStream.readHandshakeMsg(Constants.HANDSHAKE_MSG_LEN);
 				if(!peer.getNeighborClientTable().containsKey(neighborPeerId)) {
 					PeerInfo neighborPeerInfo = new PeerInfo(neighborPeerId, socket.getInetAddress().getHostName(), socket.getPort(), false);
 					if (neighborPeerInfo.isFilePresent())
 						neighborPeerInfo.getPieceIndexes().set(0, peer.totalPieces);
 					Client target = new Client(peer, neighborPeerInfo, socket, msgStream);
 					new Thread(target).start();
-					P2PLogger.getLogger().log(Level.INFO, "Peer " + peer.peerInfo.getPeerId() + " is connected from " + neighborPeerId + ".");
+					P2PLogger.getLogger().log(Level.INFO, "Peer " + peer.peerInfo.getPeerID() + " is connected from " + neighborPeerId + ".");
 					peer.getNeighborClientTable().put(neighborPeerId, target);
 				}
 			}

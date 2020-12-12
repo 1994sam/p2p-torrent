@@ -1,6 +1,6 @@
 package org.networks.java.service;
 
-import org.networks.java.helper.Const;
+import org.networks.java.helper.Constants;
 
 import java.io.IOException;
 import java.util.Date;
@@ -13,7 +13,7 @@ public class P2PLogger {
 	public P2PLogger() {}
 
 	public static void setLogger(String peerId) {
-		String logFile = Const.LOG_FILE_PATH + peerId + Const.LOG_FILE_EXTENSTION;
+		String logFile = Constants.LOG_FILE_PATH + peerId + Constants.LOG_FILE_EXTENSION;
 
 		try {
 			FileHandler fileHandler = new FileHandler(logFile);

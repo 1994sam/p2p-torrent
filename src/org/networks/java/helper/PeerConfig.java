@@ -15,7 +15,7 @@ public class PeerConfig {
 	private final String configFileName;
 
 	public PeerConfig() {
-		this(Const.PEER_INFO_CFG_FILE_NAME);
+		this(Constants.PEER_INFO_CFG_FILE_NAME);
 	}
 
 	public PeerConfig(final String fileName) {
@@ -23,7 +23,7 @@ public class PeerConfig {
 	}
 
 	public List<PeerInfo> getPeerInfo() {
-		String filePath = System.getProperty(Const.USER_DIR_PATH) + File.separator + configFileName;
+		String filePath = System.getProperty(Constants.USER_DIR_PATH) + File.separator + configFileName;
 		try (Stream<String> stream = Files.lines(Paths.get(filePath))) {
 			return stream.map(line -> {
 				String[] values = line.split("\\s+");

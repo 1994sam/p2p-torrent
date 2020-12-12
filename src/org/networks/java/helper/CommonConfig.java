@@ -39,11 +39,11 @@ public class CommonConfig {
 	}
 
 	public CommonConfig() {
-		this(Const.COMMON_CFG_FILE_NAME);
+		this(Constants.COMMON_CFG_FILE_NAME);
 	}
 
 	public CommonConfig(String fileName) {
-		String filePath = System.getProperty(Const.USER_DIR_PATH) + File.separator + fileName;
+		String filePath = System.getProperty(Constants.USER_DIR_PATH) + File.separator + fileName;
 		final File cfgFile = new File(filePath);
 		properties = new Properties();
 		try (final InputStream inStream = new DataInputStream(new FileInputStream(cfgFile))){
