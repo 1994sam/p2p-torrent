@@ -29,6 +29,10 @@ public class Client implements Runnable {
     public boolean isShutdown;
     private Socket socket;
 
+    public Peer getPeer() {
+        return peer;
+    }
+
     public Client(final Peer peer, final PeerInfo neighborPeerInfo) {
         socket = null;
         try {
@@ -128,37 +132,77 @@ public class Client implements Runnable {
         peer.updatePieceTracer(neighborPeerInfo);
 
         if (neighborPeerInfo.getPieceIndexes().length() > 0) {
-            P2PLogger.getLogger().log(Level.INFO, "Peer " + peer.peerInfo.getPeerId() + " sending INTERESTED message to Peer " + neighborPeerInfo.getPeerId());
+//            P2PLogger.getLogger().log(Level.INFO, "Peer " + peer.peerInfo.getPeerId() + " sending INTERESTED message to Peer " + neighborPeerInfo.getPeerId());
             msgStream.sendInterestedMsg(Const.MSG_LEN_0);
         }
-
-//        String logMsg = "";
-//        for(PeerInfo x: peer.getPeerInfoTable().values())
-//            logMsg += "Peer " + x.getPeerId() + " missing pieces " + x.getMissingPieces() + "\n";
-//        System.out.println(logMsg);
     }
 
     private void processHaveMessage() throws IOException {
-        P2PLogger.getLogger().log(Level.INFO, "Peer " + peer.peerInfo.getPeerId() + " received the HAVE message from Peer " + neighborPeerInfo.getPeerId());
         int pieceIndex = msgStream.getInStream().readInt();
         peer.updateNeighborPieceInfo(neighborPeerInfo.getPeerId(), pieceIndex);
+        P2PLogger.getLogger().log(Level.INFO, "Peer " + peer.peerInfo.getPeerId() + " received a 'have' message from " + neighborPeerInfo.getPeerId() + " for the piece " + pieceIndex + ".");
 
         if (peer.isPieceRequired(pieceIndex)) {
-            P2PLogger.getLogger().log(Level.INFO, "Peer " + peer.peerInfo.getPeerId() + " sending INTERESTED message to Peer " + neighborPeerInfo.getPeerId());
+//            P2PLogger.getLogger().log(Level.INFO, "Peer " + peer.peerInfo.getPeerId() + " sending INTERESTED message to Peer " + neighborPeerInfo.getPeerId());
             msgStream.sendInterestedMsg(Const.MSG_LEN_0);
         } else {
-            P2PLogger.getLogger().log(Level.INFO, "Peer " + peer.peerInfo.getPeerId() + " sending NOT INTERESTED message to Peer " + neighborPeerInfo.getPeerId());
+//            P2PLogger.getLogger().log(Level.INFO, "Peer " + peer.peerInfo.getPeerId() + " sending NOT INTERESTED message to Peer " + neighborPeerInfo.getPeerId());
             msgStream.sendNotInterestedMsg(Const.MSG_LEN_0);
         }
     }
 
+    private void processInterestedMessage() {
+        P2PLogger.getLogger().log(Level.INFO, "Peer " + peer.peerInfo.getPeerId() + " received the 'interested' message from " + neighborPeerInfo.getPeerId() + ".");
+        peer.addInterestedPeer(neighborPeerInfo.getPeerId());
+    }
+
+    private void processNotInterestedMessage() {
+        P2PLogger.getLogger().log(Level.INFO, "Peer " + peer.peerInfo.getPeerId() + " received the 'not interested' message from " + neighborPeerInfo.getPeerId() + ".");
+        peer.removeAsInterestedPeer(neighborPeerInfo.getPeerId());
+    }
+
     private void processUnChokeMessage() {
-        String logMsg = "Peer" + peer.peerInfo.getPeerId() + " received Unchoke message" + " from Peer " + neighborPeerInfo.getPeerId();
-//        System.out.println(logMsg);
-        P2PLogger.getLogger().log(Level.INFO, logMsg);
+        P2PLogger.getLogger().log(Level.INFO, "Peer" + peer.peerInfo.getPeerId() + " is unchoked by " + neighborPeerInfo.getPeerId() + ".");
         unChokedAt = Instant.now();
         //TODO: send request for piece
         requestPiece();
+    }
+
+    private void processChokeMessage() {
+        P2PLogger.getLogger().log(Level.INFO, "Peer" + peer.peerInfo.getPeerId() + " is choked by " + neighborPeerInfo.getPeerId() + ".");
+        chokeTimeLock.writeLock().lock();
+        //downloadRate = (float) (downloadedPieces / Duration.between(unChokedAt, Instant.now()).getSeconds());
+        chokeTimeLock.writeLock().lock();
+        downloadedPieces = 0;
+    }
+
+    private void processRequestMessage() throws IOException {
+        if (!isChoked) {
+            int pieceIndex = msgStream.getInStream().readInt();
+//            P2PLogger.getLogger().log(Level.INFO, "Peer " + neighborPeerInfo.getPeerId() + " requested piece index " + pieceIndex + " to Peer " + peer.peerInfo.getPeerId());
+//            P2PLogger.getLogger().log(Level.INFO, "Peer " + peer.peerInfo.getPeerId() + " sending piece at index " + pieceIndex + " to Peer " + neighborPeerInfo.getPeerId());
+            msgStream.sendPieceMsg(pieceIndex, peer.getPiece(pieceIndex));
+        }
+    }
+
+    private void processPieceMessage(int msgPayLoadLen) {
+        try {
+            if(msgPayLoadLen == -1) {
+                msgPayLoadLen = msgStream.read4ByteIntData();
+                int messageType = Byte.toUnsignedInt(msgStream.getInStream().readByte());
+            }
+            int pieceIndex = msgStream.read4ByteIntData();
+            byte[] piece = msgStream.readPieceMsg(msgPayLoadLen);
+
+            peer.updatePiece(pieceIndex, piece);
+            P2PLogger.getLogger().log(Level.INFO, "Peer " + neighborPeerInfo.getPeerId() + " has downloaded the piece " + pieceIndex + " from " + peer.peerInfo.getPeerId() + ". Now the number of pieces it has is " + peer.peerInfo.getPieceIndexes().cardinality() + ".");
+
+            downloadedPieces++;
+            peer.downloadedPieces.add(pieceIndex);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     private void requestPiece() {
@@ -169,36 +213,14 @@ public class Client implements Runnable {
         requestFileData(pieceIndex);
     }
 
-    private void processChokeMessage() {
-        String logMsg = "Peer" + peer.peerInfo.getPeerId() + " received Choke message" + ".";
-//        System.out.println(logMsg);
-        P2PLogger.getLogger().log(Level.INFO, logMsg);
-
-        chokeTimeLock.writeLock().lock();
-        //downloadRate = (float) (downloadedPieces / Duration.between(unChokedAt, Instant.now()).getSeconds());
-        chokeTimeLock.writeLock().lock();
-        downloadedPieces = 0;
-    }
-
-    private void processRequestMessage() throws IOException {
-        if (!isChoked) {
-            int pieceIndex = msgStream.getInStream().readInt();
-            P2PLogger.getLogger().log(Level.INFO, "Peer " + neighborPeerInfo.getPeerId() + " requested piece index " + pieceIndex + " to Peer " + peer.peerInfo.getPeerId());
-            P2PLogger.getLogger().log(Level.INFO, "Peer " + peer.peerInfo.getPeerId() + " sending piece at index " + pieceIndex + " to Peer " + neighborPeerInfo.getPeerId());
-            msgStream.sendPieceMsg(pieceIndex, peer.getPiece(pieceIndex));
+    public void requestFileData(int pieceIndex) {
+        if (peer.isPieceRequired(pieceIndex)) {
+//            P2PLogger.getLogger().log(Level.INFO, "Peer " + peer.peerInfo.getPeerId() + " requesting piece index " + pieceIndex + " to Peer " + neighborPeerInfo.getPeerId());
+            msgStream.sendRequestMsg(Const.PIECE_INDEX_PAYLOAD_LEN, pieceIndex);
+            processPieceMessage(-1);
+            sendHaveMessage(pieceIndex);
+            getNextFilePiece();
         }
-    }
-
-    private void processInterestedMessage() {
-        P2PLogger.getLogger().log(Level.INFO, "Peer " + peer.peerInfo.getPeerId() + " got INTERESTED message from Peer "
-                + neighborPeerInfo.getPeerId());
-        peer.addInterestedPeer(neighborPeerInfo.getPeerId());
-    }
-
-    private void processNotInterestedMessage() {
-        P2PLogger.getLogger().log(Level.INFO, "Peer " + peer.peerInfo.getPeerId() + " got NOT INTERESTED message from Peer "
-                + neighborPeerInfo.getPeerId());
-        peer.removeAsInterestedPeer(neighborPeerInfo.getPeerId());
     }
 
     private void getNextFilePiece() {
@@ -209,7 +231,6 @@ public class Client implements Runnable {
     }
 
     public void sendHaveMessage(int pieceIndex) {
-	    P2PLogger.getLogger().log(Level.INFO, "Peer " + peer.peerInfo.getPeerId() + " sending the HAVE message from Peer ");
         for (Client client : peer.getNeighborClientTable().values())
             client.msgStream.sendHaveMsg(Const.PIECE_INDEX_PAYLOAD_LEN, pieceIndex);
     }
@@ -243,41 +264,6 @@ public class Client implements Runnable {
             }
         } catch (IOException e) {
             // Do nothing
-        }
-    }
-
-    public Peer getPeer() {
-        return peer;
-    }
-
-    public void requestFileData(int pieceIndex) {
-        if (peer.isPieceRequired(pieceIndex)) {
-            P2PLogger.getLogger().log(Level.INFO, "Peer " + peer.peerInfo.getPeerId() + " requesting piece index " + pieceIndex + " to Peer " + neighborPeerInfo.getPeerId());
-            msgStream.sendRequestMsg(Const.PIECE_INDEX_PAYLOAD_LEN, pieceIndex);
-            processPieceMessage(-1);
-            sendHaveMessage(pieceIndex);
-        }
-    }
-
-    private void processPieceMessage(int msgPayLoadLen) {
-        try {
-            if(msgPayLoadLen == -1) {
-                msgPayLoadLen = msgStream.read4ByteIntData();
-                int messageType = Byte.toUnsignedInt(msgStream.getInStream().readByte());
-            }
-            int pieceIndex = msgStream.read4ByteIntData();
-            byte[] piece = msgStream.readPieceMsg(msgPayLoadLen);
-
-            P2PLogger.getLogger().log(Level.INFO, "Peer " + neighborPeerInfo.getPeerId() + " sent piece at index " + pieceIndex + " to Peer " + peer.peerInfo.getPeerId());
-            peer.updatePiece(pieceIndex, piece);
-
-            downloadedPieces++;
-            peer.downloadedPieces.add(pieceIndex);
-
-            getNextFilePiece();
-
-        } catch (IOException e) {
-            e.printStackTrace();
         }
     }
 

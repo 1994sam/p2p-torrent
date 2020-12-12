@@ -34,8 +34,7 @@ public class OptimisticUnchokingTask extends TimerTask {
             if(client != null && !client.neighborPeerInfo.getPeerId().equals(peer.peerInfo.getPeerId())) {
                 peer.previouslyUnchokedNeighbor = client;
                 client.unchokeNeighbor();
-                P2PLogger.getLogger().log(Level.INFO, "Peer " + peer.peerInfo.getPeerId()
-                        + " has the unchoked neighbor " + client.neighborPeerInfo.getPeerId());
+//                P2PLogger.getLogger().log(Level.INFO, "Peer " + peer.peerInfo.getPeerId() + " has the unchoked neighbor " + client.neighborPeerInfo.getPeerId());
             }
         }
     }

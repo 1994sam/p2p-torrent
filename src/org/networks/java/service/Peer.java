@@ -68,7 +68,6 @@ public class Peer {
     }
 
     public void run() {
-        P2PLogger.getLogger().log(Level.INFO, "Starting peer process: " + peerInfo.getPeerId());
         runServer();
         try {
             Thread.sleep(10000);
@@ -100,7 +99,7 @@ public class Peer {
         }
 
         peerInfo.setMissingPieces(totalPieces - peerInfo.getPieceIndexes().cardinality());
-        System.out.println(peerInfo.getPeerId() + " missing pieces " + peerInfo.getMissingPieces());
+//        System.out.println(peerInfo.getPeerId() + " missing pieces " + peerInfo.getMissingPieces());
     }
 
     private void initializeTracker() {
@@ -143,7 +142,7 @@ public class Peer {
 
         try {
             PeerInfo neighborPeerInfo = peerInfoTable.get(peerID);
-//            pieceTracker.get(peerID).remove(pieceIndex);
+            pieceTracker.get(peerID).remove(pieceIndex);
             neighborPeerInfo.getPieceIndexes().set(pieceIndex);
             neighborPeerInfo.setMissingPieces(neighborPeerInfo.getMissingPieces() - 1);
 //            checkFileStatus(neighborPeerInfo);
@@ -164,74 +163,27 @@ public class Peer {
     }
 
     public int getInterestedPieceIndex(String peerID) {
+        bitLock.readLock().lock();
+
         try {
-            bitLock.readLock().lock();
-
             HashSet<Integer> integers = getPieceTracker().get(peerID);
-
             if (integers == null || downloadedPieces == null) {
                 return -1;
             }
-
             integers.removeAll(downloadedPieces);
 
-            P2PLogger.getLogger().info("Neighbor Pieces = " + getPieceTracker().get(peerID).stream().sorted().map(String::valueOf).collect(joining(", ")));
-
-            P2PLogger.getLogger().info("My Pieces = " + getPieceTracker().get(peerInfo.getPeerId()).stream().sorted().map(String::valueOf).collect(joining(", ")));
-
-            P2PLogger.getLogger().info("Downloaded Pieces = " + downloadedPieces.stream().sorted().map(String::valueOf).collect(joining(", ")));
+//            P2PLogger.getLogger().info("Neighbor Pieces = " + getPieceTracker().get(peerID).stream().sorted().map(String::valueOf).collect(joining(", ")));
+//            P2PLogger.getLogger().info("My Pieces = " + getPieceTracker().get(peerInfo.getPeerId()).stream().sorted().map(String::valueOf).collect(joining(", ")));
+//            P2PLogger.getLogger().info("Downloaded Pieces = " + downloadedPieces.stream().sorted().map(String::valueOf).collect(joining(", ")));
 
             if (!integers.isEmpty()) {
                 return (int) integers.toArray()[new Random().nextInt(integers.size())];
             }
 
-//            ArrayList<Integer> candidatePieces = new ArrayList<>(pieceTracker.get(peerID));
-//            candidatePieces.removeAll(new ArrayList<>(pieceTracker.get(peerInfo.getPeerId())));
-//            if (!candidatePieces.isEmpty()) {
-//                return candidatePieces.get(new Random().nextInt(candidatePieces.size()));
-//            }
         } finally {
             bitLock.readLock().unlock();
         }
         return -1;
-    }
-
-    public boolean addFilePiece(Integer pieceIndex, byte[] data) throws IOException {
-        bitLock.writeLock().lock();
-        try {
-            if (pieceTracker.get(peerInfo.getPeerId()).contains(pieceIndex)) {
-                return false;
-            }
-
-            if (!peerInfo.getPieceIndexes().get(pieceIndex)) {
-                fileHandler.addFilePiece(data, pieceIndex);
-                peerInfo.getPieceIndexes().set(pieceIndex);
-                pieceTracker.get(peerInfo.getPeerId()).add(pieceIndex);
-                if (peerInfo.getPieceIndexes().nextClearBit(0) >= totalPieces) {
-                    P2PLogger.getLogger().info("Peer " + peerInfo.getPeerId() + " has downloaded the complete file.");
-                }
-            }
-        } finally {
-            bitLock.writeLock().unlock();
-        }
-
-        for (Map.Entry<String, Client> entry : neighborClientTable.entrySet()) {
-            entry.getValue().sendHaveMessage(pieceIndex);
-        }
-
-        return true;
-    }
-
-    public byte[] getFilePiece(int pieceIndex) throws IOException {
-        bitLock.readLock().lock();
-        try {
-            if (peerInfo.getPieceIndexes().get(pieceIndex)) {
-                return fileHandler.getFilePiece(pieceIndex);
-            }
-        } finally {
-            bitLock.readLock().unlock();
-        }
-        return null;
     }
 
     public void addInterestedPeer(String peerID) {
@@ -263,37 +215,10 @@ public class Peer {
             neighborPeerInfoTable.put(neighborPeerId, client.neighborPeerInfo);
             neighborClientTable.put(neighborPeerId, client);
             pieceTracker.put(neighborPeerId, new HashSet<>());
-            P2PLogger.getLogger().log(Level.INFO, "Client Table Info: " +
-                neighborClientTable.keySet().stream().sorted().map(String::valueOf).collect(joining(", ")));
+            P2PLogger.getLogger().log(Level.INFO, "Client Table Info: " + neighborClientTable.keySet().stream().sorted().map(String::valueOf).collect(joining(", ")));
         } finally {
             bitLock.writeLock().unlock();
         }
-    }
-
-    public boolean areAllNeighborsCompleted() {
-        bitLock.readLock().lock();
-        try {
-            List<Client> completedPeers = new ArrayList<>();
-            for (PeerInfo value : peerInfoTable.values()) {
-                if (!value.isFilePresent()) {
-                    return false;
-                }
-            }
-//            Iterator<Map.Entry<String, HashSet<Integer>>> pieceIterator = pieceTracker.entrySet().iterator();
-//            while (pieceIterator.hasNext()) {
-//                Map.Entry<String, HashSet<Integer>> peer = pieceIterator.next();
-//                if (peer.getKey().equals(peerInfo.getPeerId()))
-//                    continue;
-//
-//                if (neighborClientTable.get(peer.getKey())) {
-//                    completedPeers.add(neighborClientTable.get(peer.getKey()));
-//                }
-//                return completedPeers;
-//            }
-        } finally {
-            bitLock.readLock().unlock();
-        }
-        return true;
     }
 
     public List<Client> getRunningClients() {
@@ -339,16 +264,7 @@ public class Peer {
     }
 
     public void shutdown() throws IOException {
-        System.out.println(peerInfo.getPeerId() + " Shutting down!!___________________________________");
         neighborClientTable.forEach((key, value) -> value.shutdown());
-//        if (!peerInfo.isFilePresent()) {
-//            fileHandler.writeFileToDisk();
-//        }
-//        try {
-//            Thread.sleep(50);
-//        } catch (InterruptedException e) {
-//            e.printStackTrace();
-//        }
         System.exit(0);
     }
 
@@ -385,7 +301,6 @@ public class Peer {
                         pieceTracker.get(curPeerInfo.getPeerId()).add(i);
                 }
             }
-//            curPeerInfo.setMissingPieces(pieceTracker.get(curPeerInfo.getPeerId()).size());
 
         } finally {
             bitLock.writeLock().unlock();
@@ -401,7 +316,6 @@ public class Peer {
             peerInfo.setMissingPieces(peerInfo.getMissingPieces() - 1);
             fileHandler.getPieces().put(pieceIndex, piece);
             checkFileStatus();
-//	        checkFileStatus(peerInfo);
 
         } finally {
             bitLock.writeLock().unlock();
@@ -427,9 +341,8 @@ public class Peer {
                 shutdown &= checkFileStatus(neighborPeerInfo);
 
             if(peerInfo.isFilePresent() && !fileDownloaded && shutdown) {
-                System.out.println("--------------- "  + fileDownloaded + " ---------------");
-                P2PLogger.getLogger().log(Level.INFO, "--------------- "  + fileDownloaded + " ---------------");
                 fileHandler.writeFileToDisk();
+                P2PLogger.getLogger().log(Level.INFO, "Peer " + peerInfo.getPeerId() + " has downloaded the complete file.");
                 fileDownloaded = true;
             }
         } catch (IOException ex) {

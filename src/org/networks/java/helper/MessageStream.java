@@ -42,29 +42,6 @@ public class MessageStream {
         }
     }
 
-	/*public void sendMsg(String msg) {
-		try {
-			outStream.write(msg.getBytes(StandardCharsets.UTF_8));
-			outStream.flush();
-			P2PLogger.getLogger().log(Level.INFO, "Msg sent: " + msg);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
-
-	public String readMsg(int msgLen) {
-		String msg = "";
-		try {
-			byte[] msgBytes = new byte[msgLen];
-			int len = inStream.read(msgBytes);
-			msg = new String(msgBytes, StandardCharsets.UTF_8);
-			P2PLogger.getLogger().log(Level.INFO, "Msg received: " + msg);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		return msg;
-	}*/
-
     public String readHandshakeMsg(int msgLen) {
         byte[] msgBytes = new byte[msgLen];
         int byteReadLen = 0;
@@ -106,62 +83,6 @@ public class MessageStream {
         return true;
     }
 
-    public void readMsg(PeerInfo neighborPeerInfo) {
-        byte[] msgPayLoadLenBytes = new byte[Const.MSG_LEN_LEN];
-        byte[] msgTypeBytes = new byte[Const.MSG_TYPE_LEN];
-
-        int msgPayLoadLen = 0;
-        int msgTypeLen = 0;
-        byte msgType = -1;
-
-        try {
-            if (inStream.available() < 1)
-                return;
-            inStream.read(msgPayLoadLenBytes);
-            ByteBuffer wrapped = ByteBuffer.wrap(msgPayLoadLenBytes);
-            msgPayLoadLen = wrapped.getInt();
-            msgTypeLen = inStream.read(msgTypeBytes);
-            ByteBuffer byteBuffer = ByteBuffer.wrap(msgTypeBytes);
-            msgType = byteBuffer.get();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        switch (msgType) {
-            case 0:
-                readChokeMsg(msgPayLoadLen);
-                break;
-
-            case 1:
-                readUnChokeMsg(msgPayLoadLen);
-                break;
-
-            case 2:
-                readInterestedMsg(msgPayLoadLen);
-                break;
-
-            case 3:
-                readNotInterestedMsg(msgPayLoadLen);
-                break;
-
-            case 4:
-                readHaveMsg(msgPayLoadLen);
-                break;
-
-            case 5:
-                readBitFieldMsg(neighborPeerInfo, msgPayLoadLen);
-                break;
-
-            case 6:
-                readRequestMsg(msgPayLoadLen);
-                break;
-
-            case 7:
-                readPieceMsg(msgPayLoadLen);
-                break;
-        }
-    }
-
     public void readChokeMsg(int msgPayLoadLen) {
         byte[] msgPayLoadBytes = new byte[msgPayLoadLen];
 
@@ -170,9 +91,6 @@ public class MessageStream {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-        String logMsg = "Peer" + " received Choke message" + ".";
-        P2PLogger.getLogger().log(Level.INFO, logMsg);
     }
 
     public void sendChokeMsg(int msgPayLoadLen) {
@@ -194,11 +112,11 @@ public class MessageStream {
             outStream.write(msgBytes);
             outStream.flush();
         } catch (IOException e) {
-//            e.printStackTrace();
+            e.printStackTrace();
         }
 
         String logMsg = "Peer" + " sending CHOKE message: " + Arrays.toString(msgBytes) + ".";
-        P2PLogger.getLogger().log(Level.INFO, logMsg);
+//        P2PLogger.getLogger().log(Level.INFO, logMsg);
     }
 
     public void readUnChokeMsg(int msgPayLoadLen) {
@@ -209,9 +127,6 @@ public class MessageStream {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-        String logMsg = "Peer" + " received UnChoke message.";
-        P2PLogger.getLogger().log(Level.INFO, logMsg);
     }
 
     public void sendUnChokeMsg(int msgPayLoadLen) {
@@ -233,11 +148,11 @@ public class MessageStream {
             outStream.write(msgBytes);
             outStream.flush();
         } catch (IOException e) {
-//            e.printStackTrace();
+            e.printStackTrace();
         }
 
         String logMsg = "Peer" + " sending UnChoke message: " + Arrays.toString(msgBytes) + ".";
-        P2PLogger.getLogger().log(Level.INFO, logMsg);
+//        P2PLogger.getLogger().log(Level.INFO, logMsg);
     }
 
     public void readInterestedMsg(int msgPayLoadLen) {
@@ -248,9 +163,6 @@ public class MessageStream {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-        String logMsg = "Peer" + " received Interested message" + ".";
-        P2PLogger.getLogger().log(Level.INFO, logMsg);
     }
 
     public void sendInterestedMsg(int msgPayLoadLen) {
@@ -284,9 +196,6 @@ public class MessageStream {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-        String logMsg = "Peer" + " received NotInterested message" + ".";
-        P2PLogger.getLogger().log(Level.INFO, logMsg);
     }
 
     public void sendNotInterestedMsg(int msgPayLoadLen) {
@@ -312,7 +221,6 @@ public class MessageStream {
         }
     }
 
-    // ch
     public void readHaveMsg(int msgPayLoadLen) {
         byte[] msgPayLoadBytes = new byte[msgPayLoadLen];
 
@@ -321,9 +229,6 @@ public class MessageStream {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-        String logMsg = "Peer" + " received Have message" + "." + Arrays.toString(msgPayLoadBytes);
-        P2PLogger.getLogger().log(Level.INFO, logMsg);
     }
 
     public void sendHaveMsg(int msgPayLoadLen, int pieceIndex) {
@@ -350,7 +255,6 @@ public class MessageStream {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        P2PLogger.getLogger().log(Level.INFO, Arrays.toString(msgBytes) + " sending the HAVE message from Peer ");
     }
 
     public int readRequestMsg(int msgPayLoadLen) {
@@ -462,8 +366,6 @@ public class MessageStream {
             e.printStackTrace();
             return false;
         }
-
-        printByteArr(msgBytes);
         return true;
     }
 
@@ -493,6 +395,12 @@ public class MessageStream {
 
     public int read4ByteIntData() throws IOException {
         byte[] msgPayLoadLenBytes = new byte[Const.MSG_LEN_LEN];
+        inStream.read(msgPayLoadLenBytes);
+        return byteArrayToInt(msgPayLoadLenBytes);
+    }
+
+    public int read1ByteMsgType() throws IOException {
+        byte[] msgPayLoadLenBytes = new byte[Const.MSG_TYPE_LEN];
         inStream.read(msgPayLoadLenBytes);
         return byteArrayToInt(msgPayLoadLenBytes);
     }

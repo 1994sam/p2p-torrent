@@ -31,7 +31,7 @@ public class Server implements Runnable {
 					Client target = new Client(peer, neighborPeerInfo, socket, msgStream);
 					new Thread(target).start();
 					P2PLogger.getLogger().log(Level.INFO, "Peer " + peer.peerInfo.getPeerId() + " is connected from " + neighborPeerId + ".");
-					peer.getNeighborClientTable().put(neighborPeerId, target);
+//					peer.getNeighborClientTable().put(neighborPeerId, target);
 				}
 			}
 		} catch (IOException e) {
