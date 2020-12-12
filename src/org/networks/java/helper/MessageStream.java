@@ -172,7 +172,6 @@ public class MessageStream {
         }
 
         String logMsg = "Peer" + " received Choke message" + ".";
-        System.out.println(logMsg);
         P2PLogger.getLogger().log(Level.INFO, logMsg);
     }
 
@@ -198,7 +197,6 @@ public class MessageStream {
 //            e.printStackTrace();
         }
 
-        printByteArr(msgBytes);
         String logMsg = "Peer" + " sending CHOKE message: " + Arrays.toString(msgBytes) + ".";
         P2PLogger.getLogger().log(Level.INFO, logMsg);
     }
@@ -238,7 +236,6 @@ public class MessageStream {
 //            e.printStackTrace();
         }
 
-        printByteArr(msgBytes);
         String logMsg = "Peer" + " sending UnChoke message: " + Arrays.toString(msgBytes) + ".";
         P2PLogger.getLogger().log(Level.INFO, logMsg);
     }
@@ -329,7 +326,7 @@ public class MessageStream {
         P2PLogger.getLogger().log(Level.INFO, logMsg);
     }
 
-    public void sendHaveMsg(int msgPayLoadLen) {
+    public void sendHaveMsg(int msgPayLoadLen, int pieceIndex) {
         byte[] msgBytes = new byte[Const.MSG_LEN_LEN + Const.MSG_TYPE_LEN + msgPayLoadLen];
         int index = 0;
 
@@ -344,23 +341,16 @@ public class MessageStream {
         for (byte val : byteBuffer.array())
             msgBytes[index++] = val;
 
-        BitSet temp = new BitSet(msgPayLoadLen);
-        for (int i = 0; i < msgPayLoadLen; i++) {
-            temp.set(i, true);
-        }
-        byte[] t = temp.toByteArray();
-        for (byte val : t) {
+        for (byte val : intToByteArray(pieceIndex))
             msgBytes[index++] = val;
-        }
+
         try {
             outStream.write(msgBytes);
             outStream.flush();
         } catch (IOException e) {
             e.printStackTrace();
         }
-        printByteArr(msgBytes);
-        String logMsg = "Peer" + " sending Have message: " + Arrays.toString(msgBytes) + ".";
-        P2PLogger.getLogger().log(Level.INFO, logMsg);
+        P2PLogger.getLogger().log(Level.INFO, Arrays.toString(msgBytes) + " sending the HAVE message from Peer ");
     }
 
     public int readRequestMsg(int msgPayLoadLen) {
@@ -389,7 +379,6 @@ public class MessageStream {
         for (byte val : byteBuffer.array())
             msgBytes[index++] = val;
 
-        intToByteArray(pieceIndex);
         for (byte val : intToByteArray(pieceIndex))
             msgBytes[index++] = val;
 
@@ -412,11 +401,12 @@ public class MessageStream {
     }
 
     public void sendPieceMsg(int pieceIndex, byte[] piece) {
-        ByteBuffer buffer = ByteBuffer.allocate(Const.MSG_TYPE_LEN + Const.MSG_LEN_LEN + piece.length);
+        ByteBuffer buffer = ByteBuffer.allocate(Const.MSG_TYPE_LEN + Const.MSG_LEN_LEN + Const.PIECE_INDEX_PAYLOAD_LEN +  piece.length);
         int msgType = Const.MsgType.valueOf(Const.PIECE).ordinal();
 
         buffer.putInt(piece.length);
         buffer.put((byte) msgType);
+        buffer.putInt(pieceIndex);
         buffer.put(piece);
 
         try {
@@ -437,7 +427,12 @@ public class MessageStream {
             neighborPeerInfo.setPieceIndexes(new BitSet());
         }
 
-        neighborPeerInfo.setPieceIndexes(BitSet.valueOf(msgPayLoadBytes));
+        BitSet piecesSet = BitSet.valueOf(msgPayLoadBytes);
+        neighborPeerInfo.setPieceIndexes(piecesSet);
+        neighborPeerInfo.setMissingPieces(neighborPeerInfo.getMissingPieces() - piecesSet.cardinality());
+        if(neighborPeerInfo.getMissingPieces() == 0)
+            neighborPeerInfo.setFilePresent(true);
+
         return true;
     }
 
@@ -494,5 +489,11 @@ public class MessageStream {
             (byte) ((a >> 8) & 0xFF),
             (byte) (a & 0xFF)
         };
+    }
+
+    public int read4ByteIntData() throws IOException {
+        byte[] msgPayLoadLenBytes = new byte[Const.MSG_LEN_LEN];
+        inStream.read(msgPayLoadLenBytes);
+        return byteArrayToInt(msgPayLoadLenBytes);
     }
 }

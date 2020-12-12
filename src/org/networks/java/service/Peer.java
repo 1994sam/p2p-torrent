@@ -20,6 +20,7 @@ import static java.util.stream.Collectors.joining;
 public class Peer {
 
     public boolean shutdown;
+    public boolean fileDownloaded;
     public final int totalPieces;
     public final String fileDirPath;
 
@@ -46,6 +47,7 @@ public class Peer {
     public Set<Integer> downloadedPieces;
 
     public Peer(final String peerId) throws IOException {
+        fileDownloaded = false;
         shutdown = false;
         peerInfo = null;
 
@@ -63,23 +65,6 @@ public class Peer {
         interestedPeers = Collections.synchronizedList(new ArrayList<>());
         taskTimer = new Timer(true);
         P2PLogger.setLogger(peerInfo.getPeerId());
-
-        downloadedPieces = new HashSet<>();
-    }
-
-    private void initializeTracker() {
-        pieceTracker = new ConcurrentHashMap<>();
-
-        BitSet bitSet = new BitSet(totalPieces);
-        pieceTracker.put(peerInfo.getPeerId(), new HashSet<>());
-
-        if (peerInfo.isFilePresent()) {
-            bitSet.set(0, totalPieces);
-            for (int i = 0; i < totalPieces; i++)
-                pieceTracker.get(peerInfo.getPeerId()).add(i);
-        }
-
-        peerInfo.setPieceIndexes(bitSet);
     }
 
     public void run() {
@@ -90,20 +75,13 @@ public class Peer {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-        updateNeighbors();
         establishConnection();
         scheduleTasks();
     }
 
-    private void scheduleTasks() {
-        taskTimer.schedule(new VerifyCompletionTask(this), 10000, 5000);
-        taskTimer.schedule(new OptimisticUnchokingTask(this), 0, commonConfig.getOptimisticUnchokingInterval() * 100L);
-        //TODO: add task for preferred neighbor
-    }
-
     private void initializePeer(final String peerId) {
         peerInfoTable = new ConcurrentHashMap<>();
-        neighborPeerInfoTable = new ConcurrentHashMap<>();
+        neighborPeerInfoTable = new ConcurrentHashMap<>(peerInfoTable);
         neighborClientTable = new ConcurrentHashMap<>();
 
         runningPeerInfoList = new ArrayList<>();
@@ -120,14 +98,31 @@ public class Peer {
                 peerInfoTable.put(curPeerInfo.getPeerId(), curPeerInfo);
             }
         }
+
+        peerInfo.setMissingPieces(totalPieces - peerInfo.getPieceIndexes().cardinality());
+        System.out.println(peerInfo.getPeerId() + " missing pieces " + peerInfo.getMissingPieces());
+    }
+
+    private void initializeTracker() {
+        pieceTracker = new ConcurrentHashMap<>();
+        downloadedPieces = new HashSet<>();
+
+        BitSet bitSet = new BitSet(totalPieces);
+        pieceTracker.put(peerInfo.getPeerId(), new HashSet<>());
+
+        if (peerInfo.isFilePresent()) {
+            bitSet.set(0, totalPieces);
+            for (int i = 0; i < totalPieces; i++) {
+                pieceTracker.get(peerInfo.getPeerId()).add(i);
+                downloadedPieces.add(i);
+            }
+        }
+
+        peerInfo.setPieceIndexes(bitSet);
     }
 
     private void runServer() {
         new Thread(new Server(this)).start();
-    }
-
-    private void updateNeighbors() {
-        neighborPeerInfoTable = new ConcurrentHashMap<>(peerInfoTable);
     }
 
     private void establishConnection() {
@@ -137,16 +132,22 @@ public class Peer {
         }
     }
 
+    private void scheduleTasks() {
+        taskTimer.schedule(new VerifyCompletionTask(this), 10000, 5000);
+        taskTimer.schedule(new OptimisticUnchokingTask(this), 0, commonConfig.getOptimisticUnchokingInterval() * 100);
+        //TODO: add task for preferred neighbor
+    }
+
     public void updateNeighborPieceInfo(String peerID, Integer pieceIndex) {
         bitLock.writeLock().lock();
 
         try {
             PeerInfo neighborPeerInfo = peerInfoTable.get(peerID);
-            pieceTracker.get(peerID).remove(pieceIndex);
+//            pieceTracker.get(peerID).remove(pieceIndex);
             neighborPeerInfo.getPieceIndexes().set(pieceIndex);
-            neighborPeerInfo.setMissingPieces(pieceTracker.get(peerID).size());
-            checkFileStatus(neighborPeerInfo);
-
+            neighborPeerInfo.setMissingPieces(neighborPeerInfo.getMissingPieces() - 1);
+//            checkFileStatus(neighborPeerInfo);
+	        checkFileStatus();
         } finally {
             bitLock.writeLock().unlock();
         }
@@ -155,7 +156,8 @@ public class Peer {
     public boolean isPieceRequired(Integer pieceIndex) {
         bitLock.readLock().lock();
         try {
-            return pieceTracker.get(peerInfo.getPeerId()).contains(pieceIndex);
+            return !downloadedPieces.contains(pieceIndex);
+//            return pieceTracker.get(peerInfo.getPeerId()).contains(pieceIndex);
         } finally {
             bitLock.readLock().unlock();
         }
@@ -245,7 +247,12 @@ public class Peer {
     }
 
     public List<Client> getNeighbors() {
-        return new ArrayList<>(neighborClientTable.values());
+        bitLock.readLock().lock();
+        try {
+            return new ArrayList<>(neighborClientTable.values());
+        } finally {
+            bitLock.readLock().unlock();
+        }
     }
 
     public void addNeighbor(final Client client) {
@@ -256,6 +263,8 @@ public class Peer {
             neighborPeerInfoTable.put(neighborPeerId, client.neighborPeerInfo);
             neighborClientTable.put(neighborPeerId, client);
             pieceTracker.put(neighborPeerId, new HashSet<>());
+            P2PLogger.getLogger().log(Level.INFO, "Client Table Info: " +
+                neighborClientTable.keySet().stream().sorted().map(String::valueOf).collect(joining(", ")));
         } finally {
             bitLock.writeLock().unlock();
         }
@@ -287,19 +296,19 @@ public class Peer {
         return true;
     }
 
-    public List<Client> getAllFinishedPeers() {
+    public List<Client> getRunningClients() {
         bitLock.readLock().lock();
-        List<Client> completedPeers = new ArrayList<>();
+        List<Client> runningClients = new ArrayList<>();
         try {
-            for (Client value : neighborClientTable.values()) {
-                if (value.getPeer().peerInfo.isFilePresent()) {
-                    completedPeers.add(value);
+            for (PeerInfo neighborPeerInfo: peerInfoTable.values()) {
+                if (!neighborPeerInfo.isFilePresent()) {
+                    runningClients.add(neighborClientTable.get(neighborPeerInfo.getPeerId()));
                 }
             }
         } finally {
             bitLock.readLock().unlock();
         }
-        return completedPeers;
+        return runningClients;
     }
 
     public ConcurrentHashMap<String, PeerInfo> getPeerInfoTable() {
@@ -376,7 +385,7 @@ public class Peer {
                         pieceTracker.get(curPeerInfo.getPeerId()).add(i);
                 }
             }
-            curPeerInfo.setMissingPieces(pieceTracker.get(curPeerInfo.getPeerId()).size());
+//            curPeerInfo.setMissingPieces(pieceTracker.get(curPeerInfo.getPeerId()).size());
 
         } finally {
             bitLock.writeLock().unlock();
@@ -388,9 +397,11 @@ public class Peer {
 
         try {
             pieces.put(pieceIndex, piece);
+            peerInfo.getPieceIndexes().set(pieceIndex);
             peerInfo.setMissingPieces(peerInfo.getMissingPieces() - 1);
             fileHandler.getPieces().put(pieceIndex, piece);
-            checkFileStatus(peerInfo);
+            checkFileStatus();
+//	        checkFileStatus(peerInfo);
 
         } finally {
             bitLock.writeLock().unlock();
@@ -411,29 +422,27 @@ public class Peer {
         bitLock.writeLock().lock();
 
         try {
-            checkFileStatus(peerInfo);
+            shutdown = checkFileStatus(peerInfo);
             for (PeerInfo neighborPeerInfo : peerInfoTable.values())
-                checkFileStatus(neighborPeerInfo);
+                shutdown &= checkFileStatus(neighborPeerInfo);
+
+            if(peerInfo.isFilePresent() && !fileDownloaded && shutdown) {
+                System.out.println("--------------- "  + fileDownloaded + " ---------------");
+                P2PLogger.getLogger().log(Level.INFO, "--------------- "  + fileDownloaded + " ---------------");
+                fileHandler.writeFileToDisk();
+                fileDownloaded = true;
+            }
+        } catch (IOException ex) {
+            ex.printStackTrace();
         } finally {
             bitLock.writeLock().unlock();
         }
     }
 
-    public void checkFileStatus(PeerInfo peerInfo) {
-        if (shutdown)
-            return;
-
-        if (!peerInfo.isFilePresent())
-            peerInfo.setFilePresent(peerInfo.getMissingPieces() == 0);
-
-        if (peerInfo.isFilePresent()) {
-            shutdown = true;
-            try {
-                fileHandler.writeFileToDisk();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
+    public boolean checkFileStatus(PeerInfo curPeerInfo) {
+        if (!curPeerInfo.isFilePresent())
+            curPeerInfo.setFilePresent(curPeerInfo.getMissingPieces() == 0);
+        return curPeerInfo.isFilePresent();
     }
 
 }
