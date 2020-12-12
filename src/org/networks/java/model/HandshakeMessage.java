@@ -8,7 +8,7 @@ public class HandshakeMessage {
 	private String header;
 	private String peerID;
 
-	HandshakeMessage(String peerID) {
+	public HandshakeMessage(String peerID) {
 		this.header = headerString;
 		this.zeroBits = new byte[10];
 		this.peerID = peerID;

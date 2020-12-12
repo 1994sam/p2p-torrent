@@ -11,28 +11,15 @@ import java.util.TimerTask;
 public class GeneratePreferredNeighbors extends TimerTask {
 
     private final Peer peer;
-    private final CommonConfig commonConfig;
 
-    public GeneratePreferredNeighbors(Peer peer, CommonConfig commonConfig) {
+    public GeneratePreferredNeighbors(final Peer peer) {
         this.peer = peer;
-        this.commonConfig = commonConfig;
     }
 
     @Override
     public void run() {
-        List<String> interestedPeers = peer.getInterestedPeers();
-        if (!interestedPeers.isEmpty()) {
-            if (peer.peerInfo.isFilePresent()) {
-                peer.setPreferredNeighbors(pickNRandom(interestedPeers, commonConfig.getNumberOfPreferredNeighbors()));
-            } else {
-
-            }
+        if (peer.getPeerIdToNeighbourClientMapping().size() > 0) {
+            peer.determinePreferredNeighbors();
         }
-    }
-
-    public static List<String> pickNRandom(List<String> peers, int n) {
-        List<String> copy = new ArrayList<>(peers);
-        Collections.shuffle(copy);
-        return n > copy.size() ? copy.subList(0, copy.size()) : copy.subList(0, n);
     }
 }

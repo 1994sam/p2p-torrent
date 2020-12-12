@@ -7,8 +7,8 @@ public class Message {
     private Constants.MessageType messageType;
     private byte[] messagePacket;
 
-    public String getMessageType() {
-        return messageType.name();
+    public Constants.MessageType getMessageType() {
+        return messageType;
     }
 
     public void setMessageType(String messageType) {
@@ -23,8 +23,8 @@ public class Message {
         this.messagePacket = messagePacket;
     }
 
-    public Message(String messageType, byte[] messagePacket) {
-        this.messageType = Constants.MessageType.valueOf(messageType);
+    public Message(Constants.MessageType messageType, byte[] messagePacket) {
+        this.messageType = messageType;
         this.messagePacket = messagePacket;
     }
 

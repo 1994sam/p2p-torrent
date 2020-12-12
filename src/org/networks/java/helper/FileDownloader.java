@@ -1,5 +1,6 @@
 package org.networks.java.helper;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.HashMap;
@@ -7,7 +8,7 @@ import java.util.Map;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class FileDownloader {
-    
+
     private final String filePath;
     private final boolean isReadOnlyFile;
     private final ReentrantReadWriteLock lock;
@@ -19,13 +20,13 @@ public class FileDownloader {
     private final CommonConfig commonConfig;
 
     public FileDownloader(final String filePath, final boolean isReadOnlyFile,
-                          final CommonConfig commonConfig) throws IOException {
-        this.filePath = filePath;
+                          final CommonConfig commonConfig, final String peerID) throws IOException {
+        this.filePath = Constants.FILE_DIR_PREFIX_PATH + peerID + File.separator + filePath;
         this.isReadOnlyFile = isReadOnlyFile;
         this.commonConfig = commonConfig;
         lock = new ReentrantReadWriteLock();
         filePieces = new HashMap<>();
-        file = getFile(filePath, isReadOnlyFile, commonConfig);
+        file = getFile(this.filePath, isReadOnlyFile, commonConfig);
     }
 
     private RandomAccessFile getFile(final String filePath, final boolean readOnly,

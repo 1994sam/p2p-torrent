@@ -45,5 +45,5 @@ classes: $(CLASSES:.java=.class)
 clean:
 	$(RM) ${CLASS_FILES}
 run:
-#	cd src & java org.networks.java.Main 0
-	cd src & java org.networks.java.Main 1
+#	cd src & java org.networks.java.PeerProcess 0
+	cd src & java org.networks.java.PeerProcess 1

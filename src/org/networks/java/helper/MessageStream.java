@@ -61,13 +61,13 @@ public class MessageStream {
     }
 
     public int read4ByteIntData() throws IOException {
-        byte[] msgPayLoadLenBytes = new byte[Const.MSG_LEN_LEN];
+        byte[] msgPayLoadLenBytes = new byte[Constants.MSG_LEN_LEN];
         inStream.read(msgPayLoadLenBytes);
         return byteArrayToInt(msgPayLoadLenBytes);
     }
 
     public int read1ByteMsgType() throws IOException {
-        byte[] msgPayLoadLenBytes = new byte[Const.MSG_TYPE_LEN];
+        byte[] msgPayLoadLenBytes = new byte[Constants.MSG_TYPE_LEN];
         inStream.read(msgPayLoadLenBytes);
         return byteArrayToInt(msgPayLoadLenBytes);
     }

@@ -11,8 +11,8 @@ public class PeerInfo {
 	private BitSet pieceIndexes;
 	private int missingPieces;
 
-    public String getPeerID() {
-        return peerID;
+    public String getPeerId() {
+        return peerId;
     }
 
     public String getHostName() {
@@ -39,7 +39,7 @@ public class PeerInfo {
 		this.pieceIndexes = pieceIndexes;
 	}
 
-	public Boolean getFilePresent() {
+	public Boolean isFilePresent() {
 		return filePresent;
 	}
 
