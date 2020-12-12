@@ -1,7 +1,7 @@
 package org.networks.java.service;
 
-import org.networks.java.helper.Constants;
 import org.networks.java.helper.MessageStream;
+import org.networks.java.helper.MessageType;
 import org.networks.java.model.HandshakeMessage;
 import org.networks.java.model.Message;
 import org.networks.java.model.PeerInfo;
@@ -17,7 +17,7 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.logging.Level;
 
-import static org.networks.java.helper.Constants.MessageType.*;
+import static org.networks.java.helper.MessageType.*;
 
 public class Client implements Runnable {
 
@@ -47,7 +47,7 @@ public class Client implements Runnable {
 
 	private void processMessage() throws IOException {
 		int messageLength = msgStream.getInputStream().readInt();
-		Constants.MessageType messageType = getMessageValue(msgStream.getInputStream().readByte());
+		MessageType messageType = getMessageValue(msgStream.getInputStream().readByte());
 
 		switch (messageType) {
 			case CHOKE:
@@ -110,12 +110,14 @@ public class Client implements Runnable {
 
 	private void readInterestedMsg() {
 		P2PLogger.getLogger().log(Level.INFO, "Peer [" + peer.getPeerInfo().getPeerId() + "] received the `interested` message from [" + neighborPeerInfo.getPeerId() + "].");
-		peer.addPeerInterest(neighborPeerInfo.getPeerId(), true);
+//		peer.addPeerInterest(neighborPeerInfo.getPeerId(), true);
+		peer.addPeersInterestedInMe(neighborPeerInfo.getPeerId());
 	}
 
 	private void readNotInterested() {
 		P2PLogger.getLogger().log(Level.INFO, "Peer [" + peer.getPeerInfo().getPeerId() + "] received a `not interested` message from [" + neighborPeerInfo.getPeerId() + "].");
-		peer.addPeerInterest(neighborPeerInfo.getPeerId(), false);
+//		peer.addPeerInterest(neighborPeerInfo.getPeerId(), false);
+		peer.removeFromPeersInterestedInMe(neighborPeerInfo.getPeerId());
 	}
 
 	private void readHaveMsg() throws IOException {
@@ -160,14 +162,14 @@ public class Client implements Runnable {
 		downloadedPiecesSinceUnchoked++;
 		if (pieceAdded) {
 			P2PLogger.getLogger().log(Level.INFO, "Peer [" + peer.getPeerInfo().getPeerId() + "] has downloaded the piece [" + pieceIndex + "] from [" + neighborPeerInfo.getPeerId() + "]. "
-				+ "Now the number of pieces it has is [" + peer.getPeerInfo().getPieceIndexes().cardinality() + "].");
+				+ "Now the number of pieces it has is [" + peer.getFileDownloader().getFilePieces().size() + "].");
 		}
 		requestPiece();
 	}
 
 	private void receiveHandshakeMsg() throws IOException {
 		String receivedMsg = msgStream.getInputStream().readUTF();
-		String neighborPeerId = receivedMsg.substring(28, 32);
+		String neighborPeerId = receivedMsg.substring(20, 24); //TODO change
 		String sentMsg = new HandshakeMessage(neighborPeerId).toString();
 
 		if (sentMsg.equalsIgnoreCase(receivedMsg)) {
@@ -284,7 +286,7 @@ public class Client implements Runnable {
 	public Client(final Peer peer, final PeerInfo neighborPeerInfo) {
 		socket = null;
 		try {
-			socket = new Socket(neighborPeerInfo.getHostName(), neighborPeerInfo.getPortNum());
+			socket = new Socket(neighborPeerInfo.getHostName(), neighborPeerInfo.getPortNumber());
 		} catch (IOException e) {
 		}
 		initializeClient(peer, neighborPeerInfo, socket, new MessageStream(socket), false);

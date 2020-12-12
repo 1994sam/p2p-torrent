@@ -3,6 +3,8 @@ package org.networks.java.helper;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -26,6 +28,9 @@ public class FileDownloader {
         this.commonConfig = commonConfig;
         lock = new ReentrantReadWriteLock();
         filePieces = new HashMap<>();
+        String fileDirPath = Constants.FILE_DIR_PREFIX_PATH + peerID;
+        if (!Files.exists(Paths.get(fileDirPath)))
+            new File(fileDirPath).mkdir();
         file = getFile(this.filePath, isReadOnlyFile, commonConfig);
     }
 
@@ -78,5 +83,8 @@ public class FileDownloader {
         return filePieces.get(pieceIndex);
     }
 
+    public Map<Integer, byte[]> getFilePieces() {
+        return filePieces;
+    }
 
 }

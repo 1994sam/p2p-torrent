@@ -16,7 +16,7 @@ public class OptimisticUnchokingTask extends TimerTask {
     @Override
     public void run() {
         if (peer.getPeerIdToNeighbourClientMapping().size() > 0) {
-            peer.determineOptimisticallyUnchokedNeighbor();
+            peer.unchokeNewNeighbour();
         }
     }
 }

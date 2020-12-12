@@ -16,7 +16,7 @@ public class Constants {
 
     public final static int HANDSHAKE_ZERO_BITS_LEN = 10;
     public final static int HANDSHAKE_MSG_LEN = 32;
-    public final static String HANDSHAKE_HEADER = "P2PFILESHARINGPROJ";
+    public final static String HANDSHAKE_HEADER = "SHARE_FILE";
 
     public static final String COMMON_CFG_FILE_NAME = "Common.cfg";
     public static final String PEER_INFO_CFG_FILE_NAME = "PeerInfoDummy.cfg";
@@ -25,27 +25,4 @@ public class Constants {
 
     public static final String LOG_FILE_PATH = "log_peer_";
     public static final String LOG_FILE_EXTENSION = ".log";
-
-    public enum MessageType {
-        CHOKE("CHOKE"),
-        UNCHOKE("UNCHOKE"),
-        INTERESTED("INTERESTED"),
-        NOT_INTERESTED("NOT_INTERESTED"),
-        HAVE("HAVE"),
-        BITFIELD("BITFIELD"),
-        REQUEST("REQUEST"),
-        PIECE("PIECE");
-
-        private String name;
-
-        public static MessageType getMessageValue(int typeIdx) {
-            return MessageType.values()[typeIdx];
-        }
-
-        MessageType(String name) {
-            this.name = name;
-        }
-    }
-
-
 }

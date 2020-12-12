@@ -1,11 +1,7 @@
 package org.networks.java.tasks;
 
-import org.networks.java.helper.CommonConfig;
 import org.networks.java.service.Peer;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 import java.util.TimerTask;
 
 public class GeneratePreferredNeighbors extends TimerTask {
@@ -19,7 +15,7 @@ public class GeneratePreferredNeighbors extends TimerTask {
     @Override
     public void run() {
         if (peer.getPeerIdToNeighbourClientMapping().size() > 0) {
-            peer.determinePreferredNeighbors();
+            peer.setPreferredNeighbours();
         }
     }
 }

@@ -6,7 +6,7 @@ public class PeerInfo {
 
 	private String peerId;
 	private String hostName;
-	private int portNum;
+	private int portNumber;
 	private boolean filePresent;
 	private BitSet pieceIndexes;
 
@@ -22,12 +22,12 @@ public class PeerInfo {
 		this.hostName = hostName;
 	}
 
-	public int getPortNum() {
-		return portNum;
+	public int getPortNumber() {
+		return portNumber;
 	}
 
-	public void setPortNum(int port) {
-		this.portNum = port;
+	public void setPortNumber(int port) {
+		this.portNumber = port;
 	}
 
 	public BitSet getPieceIndexes() {
@@ -57,7 +57,7 @@ public class PeerInfo {
 	public PeerInfo(String peerId, String hostName, Integer port, Boolean filePresent) {
 		this.peerId = peerId;
 		this.hostName = hostName;
-		this.portNum = port;
+		this.portNumber = port;
 		this.filePresent = filePresent;
 		pieceIndexes = new BitSet();
 	}
@@ -67,7 +67,7 @@ public class PeerInfo {
 		return "PeerInfo{" +
 			"peerID='" + peerId + '\'' +
 			", hostName='" + hostName + '\'' +
-			", portNumber=" + portNum +
+			", portNumber=" + portNumber +
 			", filePresent=" + filePresent +
 			'}';
 	}
