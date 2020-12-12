@@ -2,6 +2,11 @@ package org.networks.java.helper;
 
 public class Constants {
 
+    public final static int PROCESS_EXIT_CODE = 0;
+    public final static int PROCESS_STALL_INTERVAL = 5000;
+
+    public final static long SEC_TO_MILLI_SEC = 1000L;
+
     public final static int BYTE_LEN = 8;
     public final static int PEER_ID_LEN = 4;
     public final static int MSG_LEN_0 = 0;

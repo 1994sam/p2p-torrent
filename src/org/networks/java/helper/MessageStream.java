@@ -2,73 +2,63 @@ package org.networks.java.helper;
 
 import org.networks.java.service.P2PLogger;
 
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import java.io.*;
 import java.net.Socket;
 import java.util.logging.Level;
 
 public class MessageStream {
 
-    private ObjectInputStream inStream;
-    private ObjectOutputStream outStream;
+	private DataInputStream inStream;
+	private DataOutputStream outStream;
 
-    private String message;
+	public DataInputStream getInputStream() {
+		return inStream;
+	}
 
-    public ObjectInputStream getInputStream() {
-        return inStream;
-    }
+	public DataOutputStream getOutputStream() {
+		return outStream;
+	}
 
-    public ObjectOutputStream getOutputStream() {
-        return outStream;
-    }
+	public MessageStream(Socket socket) {
+		try {
+			outStream = new DataOutputStream(socket.getOutputStream());
+			inStream = new DataInputStream(socket.getInputStream());
+		} catch (IOException e) {
+			P2PLogger.getLogger().log(Level.SEVERE, e.getMessage());
+		}
+	}
 
-    public String getMessage() {
-        return message;
-    }
+	public void printByteArr(byte[] msgBytes) {
+		for (byte val : msgBytes)
+			System.out.print(val + " ");
+		System.out.println();
+	}
 
-    public MessageStream(Socket socket) {
-        try {
-            outStream = new ObjectOutputStream(socket.getOutputStream());
-            inStream = new ObjectInputStream(socket.getInputStream());
-        } catch (IOException e) {
-            P2PLogger.getLogger().log(Level.SEVERE, e.getMessage());
-        }
-    }
+	public static int byteArrayToInt(byte[] b) {
+		return b[3] & 0xFF |
+			(b[2] & 0xFF) << 8 |
+			(b[1] & 0xFF) << 16 |
+			(b[0] & 0xFF) << 24;
+	}
 
-    public void printByteArr(byte[] msgBytes) {
-        for (byte val : msgBytes)
-            System.out.print(val + " ");
-        System.out.println();
-    }
+	public static byte[] intToByteArray(int a) {
+		return new byte[]{
+			(byte) ((a >> 24) & 0xFF),
+			(byte) ((a >> 16) & 0xFF),
+			(byte) ((a >> 8) & 0xFF),
+			(byte) (a & 0xFF)
+		};
+	}
 
-    public static int byteArrayToInt(byte[] b)
-    {
-        return   b[3] & 0xFF |
-            (b[2] & 0xFF) << 8 |
-            (b[1] & 0xFF) << 16 |
-            (b[0] & 0xFF) << 24;
-    }
+	public int read4ByteIntData() throws IOException {
+		byte[] data = new byte[Constants.MSG_LEN_LEN];
+		inStream.read(data);
+		return byteArrayToInt(data);
+	}
 
-    public static byte[] intToByteArray(int a)
-    {
-        return new byte[] {
-            (byte) ((a >> 24) & 0xFF),
-            (byte) ((a >> 16) & 0xFF),
-            (byte) ((a >> 8) & 0xFF),
-            (byte) (a & 0xFF)
-        };
-    }
-
-    public int read4ByteIntData() throws IOException {
-        byte[] msgPayLoadLenBytes = new byte[Constants.MSG_LEN_LEN];
-        inStream.read(msgPayLoadLenBytes);
-        return byteArrayToInt(msgPayLoadLenBytes);
-    }
-
-    public int read1ByteMsgType() throws IOException {
-        byte[] msgPayLoadLenBytes = new byte[Constants.MSG_TYPE_LEN];
-        inStream.read(msgPayLoadLenBytes);
-        return byteArrayToInt(msgPayLoadLenBytes);
-    }
+	public int read1ByteMsgType() throws IOException {
+		byte[] data = new byte[Constants.MSG_TYPE_LEN];
+		inStream.read(data);
+		return byteArrayToInt(data);
+	}
 }

@@ -10,37 +10,36 @@ import java.util.logging.Level;
 
 public class Server implements Runnable {
 
-    Peer peer;
+	Peer peer;
 
-    public Server() {
-    }
+	public Server() {
+	}
 
-    public Server(Peer peer) {
-        this.peer = peer;
-    }
+	public Server(Peer peer) {
+		this.peer = peer;
+	}
 
-    @Override
-    public void run() {
-        try (ServerSocket serverSocket = new ServerSocket(peer.getPeerInfo().getPortNum())) {
-            while (true) {
-                Socket socket = serverSocket.accept();
-                MessageStream msgStream = new MessageStream(socket);
+	@Override
+	public void run() {
+		try (ServerSocket serverSocket = new ServerSocket(peer.getPeerInfo().getPortNum())) {
+			while (true) {
+				Socket socket = serverSocket.accept();
+				MessageStream msgStream = new MessageStream(socket);
 
-                String message = msgStream.getInputStream().readUTF();
-                String neighborPeerId = message.substring(28, 32);
+				String message = msgStream.getInputStream().readUTF();
+				String neighborPeerId = message.substring(28, 32);
 
-                PeerInfo neighbor = new PeerInfo(neighborPeerId, socket.getInetAddress().getHostAddress(), socket.getPort(), false);
-                Client client = new Client(peer, neighbor, socket, msgStream);
-                peer.addClient(client);
+				PeerInfo neighbor = new PeerInfo(neighborPeerId, socket.getInetAddress().getHostAddress(), socket.getPort(), false);
+				Client client = new Client(peer, neighbor, socket, msgStream);
+				peer.addClient(client);
 
-                P2PLogger.getLogger().log(Level.INFO, "Peer " + peer.getPeerInfo().getPeerId() + " is connected from " + neighborPeerId + ".");
+				P2PLogger.getLogger().log(Level.INFO, "Peer [" + peer.getPeerInfo().getPeerId() + "] is connected from Peer [" + neighborPeerId + "].");
 
-                Thread clientThread = new Thread(client);
-                clientThread.start();
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+				Thread clientThread = new Thread(client);
+				clientThread.start();
+			}
+		} catch (IOException e) {
+		}
 
-    }
+	}
 }

@@ -9,15 +9,14 @@ public class PeerInfo {
 	private int portNum;
 	private boolean filePresent;
 	private BitSet pieceIndexes;
-	private int missingPieces;
 
-    public String getPeerId() {
-        return peerId;
-    }
+	public String getPeerId() {
+		return peerId;
+	}
 
-    public String getHostName() {
-        return hostName;
-    }
+	public String getHostName() {
+		return hostName;
+	}
 
 	public void setHostName(String hostName) {
 		this.hostName = hostName;
@@ -51,15 +50,16 @@ public class PeerInfo {
 		this(null);
 	}
 
-    public PeerInfo(String peerID) {
-        this(peerID, null, -1, false);
-    }
+	public PeerInfo(String peerID) {
+		this(peerID, null, -1, false);
+	}
 
 	public PeerInfo(String peerId, String hostName, Integer port, Boolean filePresent) {
 		this.peerId = peerId;
 		this.hostName = hostName;
 		this.portNum = port;
 		this.filePresent = filePresent;
+		pieceIndexes = new BitSet();
 	}
 
 	@Override
