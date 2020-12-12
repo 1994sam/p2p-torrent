@@ -1,6 +1,6 @@
 package org.networks.java.service;
 
-import org.networks.java.helper.Constants;
+import org.networks.java.helper.Const;
 import org.networks.java.helper.MessageStream;
 import org.networks.java.model.PeerInfo;
 
@@ -11,28 +11,33 @@ import java.util.logging.Level;
 
 public class Server implements Runnable {
 
-	private final Peer peer;
+	Peer peer;
 
-	public Server(final Peer peer) {
+	public Server() {
+	}
+
+	public Server(Peer peer) {
 		this.peer = peer;
 	}
 
 	@Override
 	public void run() {
-		try (ServerSocket serverSocket = new ServerSocket(peer.peerInfo.getPortNumber())) {
-			while(true) {
+		try (ServerSocket serverSocket = new ServerSocket(peer.peerInfo.getPortNum())) {
+			while (true) {
 				Socket socket = serverSocket.accept();
 				MessageStream msgStream = new MessageStream(socket);
-				String neighborPeerId = msgStream.readHandshakeMsg(Constants.HANDSHAKE_MSG_LEN);
-				if(!peer.getNeighborClientTable().containsKey(neighborPeerId)) {
-					PeerInfo neighborPeerInfo = new PeerInfo(neighborPeerId, socket.getInetAddress().getHostName(), socket.getPort(), false);
-					if (neighborPeerInfo.isFilePresent())
-						neighborPeerInfo.getPieceIndexes().set(0, peer.totalPieces);
-					Client target = new Client(peer, neighborPeerInfo, socket, msgStream);
-					new Thread(target).start();
-					P2PLogger.getLogger().log(Level.INFO, "Peer " + peer.peerInfo.getPeerID() + " is connected from " + neighborPeerId + ".");
-					peer.getNeighborClientTable().put(neighborPeerId, target);
-				}
+
+				String message = msgStream.getInStream().readUTF();
+				String neighborPeerId = message.substring(28, 32);
+
+				PeerInfo neighbor = new PeerInfo(neighborPeerId, socket.getInetAddress().getHostAddress(), socket.getPort(), false);
+				Client client = new Client(peer, neighbor, socket, msgStream);
+				peer.addClient(client);
+
+				P2PLogger.getLogger().log(Level.INFO, "Peer " + peer.peerInfo.getPeerId() + " is connected from " + neighborPeerId + ".");
+
+				Thread clientThread = new Thread(client);
+				clientThread.start();
 			}
 		} catch (IOException e) {
 			e.printStackTrace();

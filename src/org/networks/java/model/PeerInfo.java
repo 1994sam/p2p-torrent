@@ -4,12 +4,12 @@ import java.util.BitSet;
 
 public class PeerInfo {
 
-    private final String peerID;
-    private final String hostName;
-    private final int portNumber;
-    private boolean filePresent;
-    private BitSet pieceIndexes;
-    private int missingPieces;
+	private String peerId;
+	private String hostName;
+	private int portNum;
+	private boolean filePresent;
+	private BitSet pieceIndexes;
+	private int missingPieces;
 
     public String getPeerID() {
         return peerID;
@@ -19,60 +19,56 @@ public class PeerInfo {
         return hostName;
     }
 
-    public int getPortNumber() {
-        return portNumber;
-    }
+	public void setHostName(String hostName) {
+		this.hostName = hostName;
+	}
 
-    public BitSet getPieceIndexes() {
-        return pieceIndexes;
-    }
+	public int getPortNum() {
+		return portNum;
+	}
 
-    public void setPieceIndexes(BitSet pieceIndexes) {
-        this.pieceIndexes = pieceIndexes;
-    }
+	public void setPortNum(int port) {
+		this.portNum = port;
+	}
 
-    public boolean isFilePresent() {
-        return filePresent;
-    }
+	public BitSet getPieceIndexes() {
+		return pieceIndexes;
+	}
 
-    public void setFilePresent(boolean filePresent) {
-        this.filePresent = filePresent;
-    }
+	public void setPieceIndexes(BitSet pieceIndexes) {
+		this.pieceIndexes = pieceIndexes;
+	}
 
-    public int getMissingPieces() {
-        return missingPieces;
-    }
+	public Boolean getFilePresent() {
+		return filePresent;
+	}
 
-    public void setMissingPieces(int missingPieces) {
-        this.missingPieces = missingPieces;
-    }
+	public void setFilePresent(Boolean filePresent) {
+		this.filePresent = filePresent;
+	}
 
-    public PeerInfo() {
-        this(null);
-    }
+	public PeerInfo() {
+		this(null);
+	}
 
     public PeerInfo(String peerID) {
         this(peerID, null, -1, false);
     }
 
-    public PeerInfo(String peerID, String hostName, int port, boolean filePresent) {
-        this.peerID = peerID;
-        this.hostName = hostName;
-        this.portNumber = port;
-        this.filePresent = filePresent;
-        this.pieceIndexes = new BitSet();
-        this.missingPieces = 0;
-    }
+	public PeerInfo(String peerId, String hostName, Integer port, Boolean filePresent) {
+		this.peerId = peerId;
+		this.hostName = hostName;
+		this.portNum = port;
+		this.filePresent = filePresent;
+	}
 
-    @Override
-    public String toString() {
-        return "PeerInfo{" +
-                "peerID='" + peerID + '\'' +
-                ", hostName='" + hostName + '\'' +
-                ", portNumber=" + portNumber +
-                ", filePresent=" + filePresent +
-                ", pieceIndexes=" + pieceIndexes.toString() +
-                ", missingPieces=" + missingPieces +
-                '}';
-    }
+	@Override
+	public String toString() {
+		return "PeerInfo{" +
+			"peerID='" + peerId + '\'' +
+			", hostName='" + hostName + '\'' +
+			", portNumber=" + portNum +
+			", filePresent=" + filePresent +
+			'}';
+	}
 }
