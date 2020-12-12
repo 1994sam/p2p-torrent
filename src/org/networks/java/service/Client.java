@@ -195,7 +195,7 @@ public class Client implements Runnable {
             byte[] piece = msgStream.readPieceMsg(msgPayLoadLen);
 
             peer.updatePiece(pieceIndex, piece);
-            P2PLogger.getLogger().log(Level.INFO, "Peer " + neighborPeerInfo.getPeerId() + " has downloaded the piece " + pieceIndex + " from " + peer.peerInfo.getPeerId() + ". Now the number of pieces it has is " + peer.peerInfo.getPieceIndexes().cardinality() + ".");
+            P2PLogger.getLogger().log(Level.INFO, "Peer " + peer.peerInfo.getPeerId() + " has downloaded the piece " + pieceIndex + " from " + neighborPeerInfo.getPeerId() + ". Now the number of pieces it has is " + peer.peerInfo.getPieceIndexes().cardinality() + ".");
 
             downloadedPieces++;
             peer.downloadedPieces.add(pieceIndex);

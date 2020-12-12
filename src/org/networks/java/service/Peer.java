@@ -132,7 +132,7 @@ public class Peer {
     }
 
     private void scheduleTasks() {
-        taskTimer.schedule(new VerifyCompletionTask(this), 10000, 5000);
+        taskTimer.schedule(new VerifyCompletionTask(this), 10000, 10000);
         taskTimer.schedule(new OptimisticUnchokingTask(this), 0, commonConfig.getOptimisticUnchokingInterval() * 100);
         //TODO: add task for preferred neighbor
     }
