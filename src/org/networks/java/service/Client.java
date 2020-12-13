@@ -1,7 +1,7 @@
 package org.networks.java.service;
 
+import org.networks.java.helper.Constants;
 import org.networks.java.helper.MessageStream;
-import org.networks.java.helper.MessageType;
 import org.networks.java.model.HandshakeMessage;
 import org.networks.java.model.Message;
 import org.networks.java.model.PeerInfo;
@@ -17,7 +17,7 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.logging.Level;
 
-import static org.networks.java.helper.MessageType.*;
+import static org.networks.java.helper.Constants.MessageType.*;
 
 public class Client implements Runnable {
 
@@ -47,7 +47,7 @@ public class Client implements Runnable {
 
 	private void processMessage() throws IOException {
 		int messageLength = msgStream.getInputStream().readInt();
-		MessageType messageType = getMessageValue(msgStream.getInputStream().readByte());
+		Constants.MessageType messageType = getMessageValue(msgStream.getInputStream().readByte());
 
 		switch (messageType) {
 			case CHOKE:
@@ -110,13 +110,11 @@ public class Client implements Runnable {
 
 	private void readInterestedMsg() {
 		P2PLogger.getLogger().log(Level.INFO, "Peer [" + peer.getPeerInfo().getPeerId() + "] received the `interested` message from [" + neighborPeerInfo.getPeerId() + "].");
-//		peer.addPeerInterest(neighborPeerInfo.getPeerId(), true);
 		peer.addPeersInterestedInMe(neighborPeerInfo.getPeerId());
 	}
 
 	private void readNotInterested() {
 		P2PLogger.getLogger().log(Level.INFO, "Peer [" + peer.getPeerInfo().getPeerId() + "] received a `not interested` message from [" + neighborPeerInfo.getPeerId() + "].");
-//		peer.addPeerInterest(neighborPeerInfo.getPeerId(), false);
 		peer.removeFromPeersInterestedInMe(neighborPeerInfo.getPeerId());
 	}
 
@@ -127,6 +125,9 @@ public class Client implements Runnable {
 		if (!peer.hasPiece(pieceIndex)) {
 			Message msg = new Message(INTERESTED, null);
 			msgStreamQueue.add(msg);
+		} else {
+			Message msg = new Message(NOT_INTERESTED, null);
+			msgStreamQueue.add(msg);
 		}
 	}
 
@@ -136,6 +137,9 @@ public class Client implements Runnable {
 		peer.setNeighborBitField(neighborPeerInfo.getPeerId(), bitFieldByte);
 		if (peer.getPieceRequestIndex(neighborPeerInfo.getPeerId()) != -1) {
 			Message msg = new Message(INTERESTED, null);
+			msgStreamQueue.add(msg);
+		} else {
+			Message msg = new Message(NOT_INTERESTED, null);
 			msgStreamQueue.add(msg);
 		}
 	}

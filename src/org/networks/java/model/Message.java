@@ -1,6 +1,6 @@
 package org.networks.java.model;
 
-import org.networks.java.helper.MessageType;
+import org.networks.java.helper.Constants.MessageType;
 
 import java.util.Arrays;
 

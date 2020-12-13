@@ -25,4 +25,25 @@ public class Constants {
 
     public static final String LOG_FILE_PATH = "log_peer_";
     public static final String LOG_FILE_EXTENSION = ".log";
+
+    public enum MessageType {
+        CHOKE("CHOKE"),
+        UNCHOKE("UNCHOKE"),
+        INTERESTED("INTERESTED"),
+        NOT_INTERESTED("NOT_INTERESTED"),
+        HAVE("HAVE"),
+        BITFIELD("BITFIELD"),
+        REQUEST("REQUEST"),
+        PIECE("PIECE");
+
+        private String name;
+
+        public static MessageType getMessageValue(int typeIdx) {
+            return MessageType.values()[typeIdx];
+        }
+
+        MessageType(String name) {
+            this.name = name;
+        }
+    }
 }

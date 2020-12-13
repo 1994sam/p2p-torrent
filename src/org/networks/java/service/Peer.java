@@ -144,7 +144,6 @@ public class Peer {
     public void setNeighborBitField(String peerID, byte[] bitField) {
         try {
             lock.writeLock().lock();
-//            BitSet bitSet = getBitSet(bitField);
             BitSet bitSet = BitSet.valueOf(bitField);
             neighbourPieceIndices.put(peerID, bitSet);
             for (int i = 0; i < numberOfPiecesToBeDownloaded; i++) {
@@ -234,15 +233,6 @@ public class Peer {
         P2PLogger.getLogger().log(Level.INFO, "Peer [" + peerInfo.getPeerId() + "] has downloaded the complete file.");
         Thread.sleep(Constants.PROCESS_STALL_INTERVAL);
         System.exit(Constants.PROCESS_EXIT_CODE);
-    }
-
-    public void addPeerInterest(String peerID, boolean interested) {
-        synchronized (peersInterestedInMe) {
-            if (interested)
-                peersInterestedInMe.add(peerID);
-            else
-                peersInterestedInMe.remove(peerID);
-        }
     }
 
     public void addPeersInterestedInMe(String peerID) {
