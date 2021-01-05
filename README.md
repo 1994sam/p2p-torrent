@@ -1,19 +1,6 @@
 ﻿# CN Project: P2P Torrent
 
 
-
-## Team Members
-
-* **Bharat Kulkarni** 
-	* UF ID: 5689 3029
-	* bharat.kulkarni@ufl.edu
-* **Krutantak Patil** 
-	* UF ID: 5615 6343
-	* krutantakb.patil@ufl.edu
-* **Sameer Aher**
-	* UF ID: 4915 9225 
-	* aher.sa@ufl.edu  
-
 ## Link to Video Demonstration
 * **[Code Overview & Local Demo Video](https://uflorida-my.sharepoint.com/:v:/g/personal/krutantakb_patil_ufl_edu/EVhaFHWlFzVFjHTSbrCEIywB-BdPErzINUELzBtKHRUUOQ?e=Bup9QR)**
 * **[Server Demo Video](https://uflorida-my.sharepoint.com/:v:/g/personal/krutantakb_patil_ufl_edu/EbGNA43h8fpNsD7gIEdSx24Bjoa4P_8hh1ITfW8cZ1aL0g?e=PK7feb)**
